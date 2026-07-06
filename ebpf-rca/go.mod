@@ -1,4 +1,4 @@
-module github.com/os2026/ebpf-rca
+module github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca
 
 go 1.22
 

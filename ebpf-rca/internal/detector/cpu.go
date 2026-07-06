@@ -7,7 +7,7 @@ package detector
 import (
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 )
 
 // Signal 表示一次已确认的异常信号。

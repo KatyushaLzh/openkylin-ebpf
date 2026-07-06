@@ -1,5 +1,5 @@
 // Package report 将多场景的诊断结果汇总为一份结构化 Markdown 报告
-//（赛题鼓励项：自动生成诊断报告 / 多维关联）。
+// （赛题鼓励项：自动生成诊断报告 / 多维关联）。
 package report
 
 import (
@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/output"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/output"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 // Aggregator 收集去重后的诊断结果。

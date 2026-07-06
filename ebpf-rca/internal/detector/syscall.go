@@ -3,7 +3,7 @@ package detector
 import (
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 )
 
 // 单个 syscall 累计耗时超过该比例(ms/秒)视为"高耗时热点"，与高频热点并列触发。

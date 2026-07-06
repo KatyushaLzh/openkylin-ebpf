@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
-	"github.com/os2026/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
 )
 
 func TestCPUReportUsesRuntimeThreshold(t *testing.T) {

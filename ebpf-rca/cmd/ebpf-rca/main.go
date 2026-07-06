@@ -21,12 +21,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
-	"github.com/os2026/ebpf-rca/internal/detector"
-	"github.com/os2026/ebpf-rca/internal/output"
-	"github.com/os2026/ebpf-rca/internal/rca"
-	"github.com/os2026/ebpf-rca/internal/report"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/output"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/rca"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/report"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 type config struct {

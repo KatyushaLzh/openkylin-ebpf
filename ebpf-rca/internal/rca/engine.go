@@ -9,9 +9,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
-	"github.com/os2026/ebpf-rca/internal/detector"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 // BuildCPUReport 将一次 CPU 异常信号转换为结构化诊断报告。

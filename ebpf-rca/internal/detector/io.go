@@ -3,7 +3,7 @@ package detector
 import (
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 )
 
 // IOSignal 表示一次已确认的 I/O 延迟抖动异常。

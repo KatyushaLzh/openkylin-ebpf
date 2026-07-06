@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
-	"github.com/os2026/ebpf-rca/internal/detector"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 // 单次平均耗时超过该值(微秒)判为"高耗时型"，否则为"高频型"。

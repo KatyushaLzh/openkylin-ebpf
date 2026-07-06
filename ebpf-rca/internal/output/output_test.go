@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 func TestMarkdownDeviceObject(t *testing.T) {

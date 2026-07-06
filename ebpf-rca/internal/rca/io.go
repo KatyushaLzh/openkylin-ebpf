@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
-	"github.com/os2026/ebpf-rca/internal/detector"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 // 队列深度超过该值视为"设备队列拥堵"。

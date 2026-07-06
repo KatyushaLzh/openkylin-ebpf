@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/detector"
-	"github.com/os2026/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
 )
 
 // 阻塞栈中出现这些符号片段，判定为锁/同步等待（而非纯 I/O 睡眠）。

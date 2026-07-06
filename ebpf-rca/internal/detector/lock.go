@@ -3,7 +3,7 @@ package detector
 import (
 	"time"
 
-	"github.com/os2026/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 )
 
 // LockSignal 表示一次已确认的锁竞争/长阻塞异常。

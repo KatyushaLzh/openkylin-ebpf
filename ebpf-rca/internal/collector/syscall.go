@@ -7,7 +7,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 
-	"github.com/os2026/ebpf-rca/internal/syscalls"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/syscalls"
 )
 
 // scKey 与 syscall.bpf.c 中的 struct sc_key 布局一致。

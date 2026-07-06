@@ -7,7 +7,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 
-	"github.com/os2026/ebpf-rca/internal/ksym"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/ksym"
 )
 
 const maxStackDepth = 32
