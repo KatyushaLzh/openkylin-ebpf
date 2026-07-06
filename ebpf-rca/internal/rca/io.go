@@ -13,12 +13,12 @@ import (
 const queueCongestionDepth = 16
 
 // BuildIOReport 将一次 I/O 延迟抖动信号转换为结构化诊断报告。
-func BuildIOReport(sig detector.IOSignal) schema.AnomalyReport {
+func BuildIOReport(sig detector.IOSignal, p99ThresholdMs float64) schema.AnomalyReport {
 	s := sig.Sample
 	root, suggestion, confidence := classifyIO(s)
 
 	evidence := []schema.Evidence{
-		{Type: "metric", Name: "p99_lat_ms", Value: round2(s.P99LatMs), Threshold: queueP99Threshold,
+		{Type: "metric", Name: "p99_lat_ms", Value: round2(s.P99LatMs), Threshold: p99ThresholdMs,
 			Desc: "请求完成时延 P99"},
 		{Type: "metric", Name: "avg_lat_ms", Value: round2(s.AvgLatMs), Desc: "平均完成时延"},
 		{Type: "metric", Name: "max_lat_ms", Value: round2(s.MaxLatMs), Desc: "最大完成时延"},
@@ -50,9 +50,6 @@ func BuildIOReport(sig detector.IOSignal) schema.AnomalyReport {
 		Suggestion:         suggestion,
 	}
 }
-
-// queueP99Threshold 仅用于证据展示（实际触发阈值由 detector 控制）。
-const queueP99Threshold = 20.0
 
 func classifyIO(s collector.IOSample) (root, suggestion string, confidence float64) {
 	if s.QueueDepth >= queueCongestionDepth {

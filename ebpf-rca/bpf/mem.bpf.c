@@ -23,12 +23,18 @@ struct mem_stat {
 	char  comm[TASK_COMM_LEN];
 };
 
-// tgid -> 直接回收开始时间戳
+struct reclaim_info {
+	__u64 ts;
+	__u32 tgid;
+	__u32 pad;
+};
+
+// tid -> 直接回收开始信息；按 tid 记录可避免同进程多线程互相覆盖。
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 8192);
 	__type(key, __u32);
-	__type(value, __u64);
+	__type(value, struct reclaim_info);
 } reclaim_start SEC(".maps");
 
 // tgid -> 累计统计
@@ -60,28 +66,35 @@ static __always_inline struct mem_stat *get_stat(__u32 tgid)
 SEC("tracepoint/vmscan/mm_vmscan_direct_reclaim_begin")
 int handle_direct_begin(void *ctx)
 {
-	__u32 tgid = bpf_get_current_pid_tgid() >> 32;
-	__u64 now = bpf_ktime_get_ns();
-	bpf_map_update_elem(&reclaim_start, &tgid, &now, BPF_ANY);
+	__u64 id = bpf_get_current_pid_tgid();
+	__u32 tid = (__u32)id;
+	struct reclaim_info info = {};
+	info.ts = bpf_ktime_get_ns();
+	info.tgid = id >> 32;
+	bpf_map_update_elem(&reclaim_start, &tid, &info, BPF_ANY);
 	return 0;
 }
 
 SEC("tracepoint/vmscan/mm_vmscan_direct_reclaim_end")
 int handle_direct_end(void *ctx)
 {
-	__u32 tgid = bpf_get_current_pid_tgid() >> 32;
+	__u64 id = bpf_get_current_pid_tgid();
+	__u32 tid = (__u32)id;
+	__u32 tgid = id >> 32;
 	__u64 now = bpf_ktime_get_ns();
-	__u64 *tsp = bpf_map_lookup_elem(&reclaim_start, &tgid);
+	struct reclaim_info *info = bpf_map_lookup_elem(&reclaim_start, &tid);
+	if (info)
+		tgid = info->tgid;
 
 	struct mem_stat *st = get_stat(tgid);
 	if (st) {
 		st->direct_reclaim_count += 1;
-		if (tsp && now > *tsp)
-			st->direct_reclaim_ns += now - *tsp;
+		if (info && now > info->ts)
+			st->direct_reclaim_ns += now - info->ts;
 		bpf_get_current_comm(&st->comm, sizeof(st->comm));
 	}
-	if (tsp)
-		bpf_map_delete_elem(&reclaim_start, &tgid);
+	if (info)
+		bpf_map_delete_elem(&reclaim_start, &tid);
 	return 0;
 }
 

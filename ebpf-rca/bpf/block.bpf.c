@@ -3,8 +3,8 @@
 // 场景②：I/O 延迟抖动 / 阻塞等待 —— 基于块层 tracepoint 的请求时延分析。
 //
 // 思路（赛题关键证据点：IOPS、平均时延、P99 时延、队列深度、热点设备）：
-//   block_rq_issue   ：请求下发到设备时记录起点（按 dev+sector 索引），队列深度++。
-//   block_rq_complete：请求完成时按 dev+sector 匹配起点，算单次时延；按设备累计
+//   block_rq_issue   ：请求下发到设备时记录起点（按 dev+sector+nr_sector+rwbs 索引），队列深度++。
+//   block_rq_complete：请求完成时命中起点才算单次时延并扣队列深度；按设备累计
 //                      次数/总时延/最大时延/字节数，并落入 log2 时延直方图(供算 P99)，队列深度--。
 // 内核态仅聚合，用户态按窗口差分并从直方图估算 P99，开销低。
 //
@@ -30,8 +30,9 @@ struct dev_stat {
 
 struct rq_key {
 	__u32 dev;
-	__u32 _pad;
+	__u32 nr_sector;
 	__u64 sector;
+	char  rwbs[8];
 };
 
 struct {
@@ -94,12 +95,22 @@ static __always_inline struct dev_stat *get_dev(__u32 dev)
 	return bpf_map_lookup_elem(&dev_stats, &dev);
 }
 
+static __always_inline struct rq_key make_key(__u32 dev, __u64 sector, __u32 nr_sector, const char rwbs[8])
+{
+	struct rq_key k = {};
+	k.dev = dev;
+	k.nr_sector = nr_sector;
+	k.sector = sector;
+#pragma unroll
+	for (int i = 0; i < 8; i++)
+		k.rwbs[i] = rwbs[i];
+	return k;
+}
+
 SEC("tracepoint/block/block_rq_issue")
 int handle_issue(struct block_rq_issue_tp *ctx)
 {
-	struct rq_key k = {};
-	k.dev = ctx->dev;
-	k.sector = ctx->sector;
+	struct rq_key k = make_key(ctx->dev, ctx->sector, ctx->nr_sector, ctx->rwbs);
 	__u64 ts = bpf_ktime_get_ns();
 	bpf_map_update_elem(&start, &k, &ts, BPF_ANY);
 
@@ -112,16 +123,18 @@ int handle_issue(struct block_rq_issue_tp *ctx)
 SEC("tracepoint/block/block_rq_complete")
 int handle_complete(struct block_rq_complete_tp *ctx)
 {
-	struct dev_stat *d = get_dev(ctx->dev);
-	if (d)
-		__sync_fetch_and_add(&d->inflight, -1);
-
-	struct rq_key k = {};
-	k.dev = ctx->dev;
-	k.sector = ctx->sector;
+	struct rq_key k = make_key(ctx->dev, ctx->sector, ctx->nr_sector, ctx->rwbs);
 	__u64 *tsp = bpf_map_lookup_elem(&start, &k);
-	if (!tsp || !d)
+	if (!tsp)
 		return 0;
+
+	struct dev_stat *d = get_dev(ctx->dev);
+	if (!d) {
+		bpf_map_delete_elem(&start, &k);
+		return 0;
+	}
+
+	__sync_fetch_and_add(&d->inflight, -1);
 
 	__u64 now = bpf_ktime_get_ns();
 	__u64 delta = now - *tsp;

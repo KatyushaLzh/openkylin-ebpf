@@ -10,7 +10,7 @@ import (
 	"github.com/cilium/ebpf/rlimit"
 )
 
-const ioNSlots = 32
+const ioNSlots = histNSlots
 
 // ioStat 与 block.bpf.c 中的 struct dev_stat 二进制布局一致。
 type ioStat struct {
@@ -25,7 +25,7 @@ type ioStat struct {
 // IOSample 是单个块设备在一个窗口内的派生 I/O 指标。
 type IOSample struct {
 	Dev            uint32
-	DevName        string  // "8:0 sda"
+	DevName        string // "8:0 sda"
 	IOPS           float64
 	AvgLatMs       float64
 	P99LatMs       float64
@@ -104,8 +104,8 @@ func (c *IOCollector) Poll(interval time.Duration) ([]IOSample, error) {
 		s := IOSample{
 			Dev:            dev,
 			DevName:        c.devString(dev),
-			MaxLatMs:       float64(v.MaxLatNs) / 1e6,
-			QueueDepth:     v.Inflight,
+			MaxLatMs:       float64(maxNSFromSlots(v.Slots, p.Slots)) / 1e6,
+			QueueDepth:     maxInt64(v.Inflight, 0),
 			ThroughputMBps: float64(dBytes) / secs / 1e6,
 		}
 		if secs > 0 {

@@ -106,16 +106,20 @@ int handle_switch(struct sched_switch_tp *ctx)
 			bpf_probe_read_kernel_str(&st->comm, sizeof(st->comm),
 						  ctx->prev_comm);
 		}
+		bpf_map_delete_elem(&oncpu_start, &prev);
 	}
 
 	// next 上 CPU：记录起点；若有唤醒时间戳则累计运行队列等待
 	if (next != 0) {
+		struct task_stat *nst = get_stat(next);
+		if (nst)
+			bpf_probe_read_kernel_str(&nst->comm, sizeof(nst->comm),
+						  ctx->next_comm);
 		bpf_map_update_elem(&oncpu_start, &next, &now, BPF_ANY);
 		__u64 *wts = bpf_map_lookup_elem(&wakeup_ts, &next);
 		if (wts && now > *wts) {
-			struct task_stat *st = get_stat(next);
-			if (st)
-				st->runq_ns += now - *wts;
+			if (nst)
+				nst->runq_ns += now - *wts;
 			bpf_map_delete_elem(&wakeup_ts, &next);
 		}
 	}

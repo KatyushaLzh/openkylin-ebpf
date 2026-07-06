@@ -11,7 +11,7 @@ scenarios:
     required_key_metrics: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
     required_evidence_names: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
     numeric_floors:
-      cpu_util: 0.20
+      cpu_util: 0.75
 
   io:
     kind: positive
@@ -25,7 +25,7 @@ scenarios:
     required_key_metrics: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
     required_evidence_names: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
     numeric_floors:
-      p99_lat_ms: 0.001
+      p99_lat_ms: 5
       iops: 1
 
   mem:
@@ -52,7 +52,7 @@ scenarios:
     required_key_metrics: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
     required_evidence_names: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
     numeric_floors:
-      offcpu_ratio: 0.001
+      offcpu_ratio: 0.05
 
   syscall:
     kind: positive
@@ -66,7 +66,7 @@ scenarios:
     required_key_metrics: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
     required_evidence_names: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
     numeric_floors:
-      calls_per_sec: 1
+      calls_per_sec: 1000
 
   idle:
     kind: negative

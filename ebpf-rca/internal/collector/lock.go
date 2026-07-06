@@ -20,6 +20,7 @@ type lockStat struct {
 	LastWaker   uint32
 	StackID     int32
 	Comm        [16]byte
+	Slots       [histNSlots]uint64
 }
 
 // LockSample 是单个线程在一个窗口内的 off-CPU 阻塞派生指标。
@@ -39,6 +40,7 @@ type LockCollector struct {
 	links []link.Link
 	ksyms *ksym.Table
 	prev  map[uint32]lockStat
+	stale map[uint32]int
 }
 
 // NewLockCollector 加载字节码、挂载 tracepoint、载入内核符号表。
@@ -46,7 +48,10 @@ func NewLockCollector() (*LockCollector, error) {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
-	c := &LockCollector{prev: make(map[uint32]lockStat)}
+	c := &LockCollector{
+		prev:  make(map[uint32]lockStat),
+		stale: make(map[uint32]int),
+	}
 	if err := loadLockObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
 	}
@@ -102,6 +107,12 @@ func (c *LockCollector) Poll(interval time.Duration) ([]LockSample, error) {
 		} else {
 			dOff, dCount = v.OffcpuNs, v.OffcpuCount
 		}
+		if shouldDeleteStale(c.stale, tid, dOff == 0 && dCount == 0) {
+			_ = c.objs.LockStats.Delete(tid)
+			_ = c.objs.OffcpuStart.Delete(tid)
+			delete(cur, tid)
+			continue
+		}
 		if dOff == 0 && dCount == 0 {
 			continue
 		}
@@ -110,7 +121,7 @@ func (c *LockCollector) Poll(interval time.Duration) ([]LockSample, error) {
 			Comm:        commToString(v.Comm),
 			OffcpuRatio: float64(dOff) / intervalNs,
 			BlockCount:  dCount,
-			MaxOffcpuMs: float64(v.MaxOffcpuNs) / 1e6,
+			MaxOffcpuMs: float64(maxNSFromSlots(v.Slots, c.prev[tid].Slots)) / 1e6,
 			LastWaker:   v.LastWaker,
 			StackID:     v.StackID,
 		})

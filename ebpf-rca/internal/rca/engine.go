@@ -14,17 +14,15 @@ import (
 	"github.com/os2026/ebpf-rca/internal/schema"
 )
 
-const cpuUtilThreshold = 0.90
-
 // BuildCPUReport 将一次 CPU 异常信号转换为结构化诊断报告。
-func BuildCPUReport(sig detector.Signal) schema.AnomalyReport {
+func BuildCPUReport(sig detector.Signal, threshold float64) schema.AnomalyReport {
 	s := sig.Sample
 	rootCause, suggestion, confidence := classifyCPU(s)
 
 	evidence := []schema.Evidence{
 		{
 			Type: "metric", Name: "cpu_util",
-			Value: round2(s.CPUUtil), Threshold: cpuUtilThreshold,
+			Value: round2(s.CPUUtil), Threshold: threshold,
 			Desc: "单核 CPU 占用率持续高于阈值",
 		},
 		{

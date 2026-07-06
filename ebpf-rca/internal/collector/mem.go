@@ -29,6 +29,8 @@ type MemProc struct {
 	DirectReclaimMs    float64 // 窗口内直接回收耗时(ms)
 	MajFlt             uint64  // 窗口内 major fault 增量
 	MinFlt             uint64  // 窗口内 minor fault 增量
+	RSSKB              uint64  // RSS 采样值(kB)
+	AnonRSSKB          uint64  // 匿名 RSS 采样值(kB)
 }
 
 // MemSnapshot 是一个窗口的系统内存状态与 per-process 压力贡献。
@@ -38,6 +40,7 @@ type MemSnapshot struct {
 	MemAvailableKB  uint64
 	KswapdWakes     uint64 // 窗口内增量
 	Procs           []MemProc
+	TopRSSProc      MemProc
 }
 
 // MemCollector 加载内存场景的 eBPF 程序并汇总系统内存压力。
@@ -47,6 +50,7 @@ type MemCollector struct {
 	prev       map[uint32]memStat
 	prevFault  map[uint32]fault
 	prevKswapd uint64
+	stale      map[uint32]int
 }
 
 // NewMemCollector 加载字节码、挂载 vmscan tracepoint。
@@ -57,6 +61,7 @@ func NewMemCollector() (*MemCollector, error) {
 	c := &MemCollector{
 		prev:      make(map[uint32]memStat),
 		prevFault: make(map[uint32]fault),
+		stale:     make(map[uint32]int),
 	}
 	if err := loadMemObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
@@ -100,6 +105,7 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 	if total > 0 {
 		snap.MemAvailablePct = float64(avail) / float64(total) * 100
 	}
+	snap.TopRSSProc = readTopRSSProc()
 
 	// kswapd 唤醒(全局)增量
 	var kw uint64
@@ -133,13 +139,81 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 			MajFlt:             saturatingSub(maj, pf.maj),
 			MinFlt:             saturatingSub(min, pf.min),
 		}
+		proc.RSSKB, proc.AnonRSSKB = readProcRSS(pid)
 		c.prevFault[pid] = fault{maj: maj, min: min}
+		if shouldDeleteStale(c.stale, pid, dCount == 0 && dNs == 0) {
+			_ = c.objs.MemStats.Delete(pid)
+			_ = c.objs.ReclaimStart.Delete(pid)
+			delete(c.prevFault, pid)
+			delete(cur, pid)
+			continue
+		}
 		if proc.DirectReclaimCount > 0 || proc.MajFlt > 0 {
 			snap.Procs = append(snap.Procs, proc)
 		}
 	}
 	c.prev = cur
 	return snap, nil
+}
+
+func readTopRSSProc() MemProc {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return MemProc{}
+	}
+	var best MemProc
+	for _, ent := range entries {
+		if !ent.IsDir() {
+			continue
+		}
+		pid64, err := strconv.ParseUint(ent.Name(), 10, 32)
+		if err != nil {
+			continue
+		}
+		pid := uint32(pid64)
+		rss, anon := readProcRSS(pid)
+		if rss <= best.RSSKB {
+			continue
+		}
+		best = MemProc{
+			Pid:       pid,
+			Comm:      readProcName(pid),
+			RSSKB:     rss,
+			AnonRSSKB: anon,
+		}
+	}
+	return best
+}
+
+func readProcRSS(pid uint32) (rssKB, anonRSSKB uint64) {
+	f, err := os.Open(fmt.Sprintf("/proc/%d/status", pid))
+	if err != nil {
+		return 0, 0
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		fields := strings.Fields(sc.Text())
+		if len(fields) < 2 {
+			continue
+		}
+		v, _ := strconv.ParseUint(fields[1], 10, 64)
+		switch fields[0] {
+		case "VmRSS:":
+			rssKB = v
+		case "RssAnon:":
+			anonRSSKB = v
+		}
+	}
+	return rssKB, anonRSSKB
+}
+
+func readProcName(pid uint32) string {
+	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
 }
 
 func saturatingSub(a, b uint64) uint64 {

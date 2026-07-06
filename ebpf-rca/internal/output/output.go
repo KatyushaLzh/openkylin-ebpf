@@ -24,10 +24,10 @@ func Write(w io.Writer, r schema.AnomalyReport, format string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := w.Write(b); err != nil {
+		if _, err := io.WriteString(w, "---\n"); err != nil {
 			return err
 		}
-		_, err = io.WriteString(w, "---\n")
+		_, err = w.Write(b)
 		return err
 	case "md", "markdown":
 		return writeMarkdown(w, r)
@@ -39,8 +39,7 @@ func Write(w io.Writer, r schema.AnomalyReport, format string) error {
 func writeMarkdown(w io.Writer, r schema.AnomalyReport) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "## 诊断报告：%s\n\n", r.AnomalyType)
-	fmt.Fprintf(&b, "- **关联对象**: pid=%d tid=%d comm=%s\n",
-		r.RelatedObject.Pid, r.RelatedObject.Tid, r.RelatedObject.Comm)
+	fmt.Fprintf(&b, "- **关联对象**: %s\n", relatedObjectString(r.RelatedObject))
 	fmt.Fprintf(&b, "- **时间窗口**: %s ~ %s\n", r.TimeWindow.Start, r.TimeWindow.End)
 	fmt.Fprintf(&b, "- **疑似根因**: %s（置信度 %.2f）\n", r.SuspectedRootCause, r.Confidence)
 	fmt.Fprintf(&b, "- **建议**: %s\n\n", r.Suggestion)
@@ -67,4 +66,24 @@ func writeMarkdown(w io.Writer, r schema.AnomalyReport) error {
 	b.WriteString("\n---\n")
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+func relatedObjectString(o schema.RelatedObject) string {
+	if o.Device != "" {
+		return "device=" + o.Device
+	}
+	parts := make([]string, 0, 3)
+	if o.Pid != 0 {
+		parts = append(parts, fmt.Sprintf("pid=%d", o.Pid))
+	}
+	if o.Tid != 0 {
+		parts = append(parts, fmt.Sprintf("tid=%d", o.Tid))
+	}
+	if o.Comm != "" {
+		parts = append(parts, "comm="+o.Comm)
+	}
+	if len(parts) == 0 {
+		return "system"
+	}
+	return strings.Join(parts, " ")
 }

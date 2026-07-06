@@ -37,7 +37,9 @@ make deps && make vmlinux && make build
 
 - 空载运行工具 60s，应**无**异常输出（验证误报率：阈值+连续窗口可抑制抖动）。
 - 注入负载后应在 `sustain` 个窗口内产生对应异常（验证漏报）。
-- 调 `--threshold` / `--sustain` 观察灵敏度变化。
+- 单场景可调 `--threshold` / `--sustain` 观察灵敏度变化；`--scenario all` 使用
+  `--cpu-threshold`、`--io-p99-threshold-ms`、`--mem-avail-floor-pct`、
+  `--lock-offcpu-threshold`、`--syscall-rate-threshold` 分别调参。
 
 ## 3. 性能开销基准
 
@@ -50,7 +52,7 @@ make bench            # 全部场景，结果写入 bench.md
 判读：负载变慢% 越小越好；工具 CPU%/RSS 为 ebpf-rca 自身开销。
 
 > 说明：syscall 场景因 `raw_syscalls` 触发极频繁，开销高于其它场景，属预期；
-> 生产可经 target_pid 过滤只观测目标进程以降开销（见 design.md 扩展点）。
+> 生产可经 `--target-pid` 过滤只观测目标进程以降开销。
 
 ## 4. 自动化本地 E2E
 
@@ -59,6 +61,7 @@ make test-smoke       # CPU + syscall 快速链路
 make test-local       # 五类正向异常
 make test-negative    # 空载误报检查
 make test-report      # Markdown 汇总报告
+make docs-check       # CLI 参数与 README 同步检查
 ```
 
 每次运行会把 JSON 输出、负载日志、校验摘要写入 `test-results/<timestamp>/`。

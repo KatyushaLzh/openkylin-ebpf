@@ -16,6 +16,7 @@ char LICENSE[] SEC("license") = "GPL";
 
 #define TASK_COMM_LEN  16
 #define MAX_STACK_DEPTH 32
+#define NSLOTS 32
 
 struct lock_stat {
 	__u64 offcpu_ns;     // 累计阻塞型 off-CPU 时间
@@ -24,6 +25,7 @@ struct lock_stat {
 	__u32 last_waker;    // 最近一次唤醒者 tid
 	__s32 stackid;       // 最近一次阻塞的内核栈 id
 	char  comm[TASK_COMM_LEN];
+	__u64 slots[NSLOTS]; // 阻塞时长 log2 直方图，用于用户态窗口最大值估算
 };
 
 struct offcpu_info {
@@ -82,6 +84,19 @@ static __always_inline struct lock_stat *get_stat(__u32 tid)
 	return bpf_map_lookup_elem(&lock_stats, &tid);
 }
 
+static __always_inline __u32 log2_u64(__u64 v)
+{
+	__u32 r = 0;
+#pragma unroll
+	for (int i = 0; i < 64; i++) {
+		if (v <= 1)
+			break;
+		v >>= 1;
+		r++;
+	}
+	return r;
+}
+
 SEC("tracepoint/sched/sched_switch")
 int handle_switch(struct sched_switch_tp *ctx)
 {
@@ -106,9 +121,13 @@ int handle_switch(struct sched_switch_tp *ctx)
 			if (st) {
 				st->offcpu_ns += dur;
 				st->offcpu_count += 1;
-				if (dur > st->max_offcpu_ns)
-					st->max_offcpu_ns = dur;
-				st->stackid = info->stackid;
+					if (dur > st->max_offcpu_ns)
+						st->max_offcpu_ns = dur;
+					__u32 slot = log2_u64(dur);
+					if (slot >= NSLOTS)
+						slot = NSLOTS - 1;
+					__sync_fetch_and_add(&st->slots[slot], 1);
+					st->stackid = info->stackid;
 				bpf_probe_read_kernel_str(&st->comm, sizeof(st->comm),
 							  ctx->next_comm);
 			}

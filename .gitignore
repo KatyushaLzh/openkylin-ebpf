@@ -1,0 +1,51 @@
+# Local build/dependency caches
+.build_deps/
+
+# Local-only project notes/config
+learning.md
+problem.md
+
+# Editor/OS noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+AGENTS.md
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.docx
+.env
+.env.*
+!.env.example
+
+# Local runtime outputs
+out/
+test-results/
+*.img
+
+# ebpf-rca local build/runtime outputs
+ebpf-rca/bin/
+ebpf-rca/bench.md
+ebpf-rca/report.md
+ebpf-rca/out/
+ebpf-rca/test-results/
+
+# ebpf-rca generated CO-RE/BPF artifacts
+ebpf-rca/bpf/vmlinux.h
+ebpf-rca/bpf/bpf/
+ebpf-rca/internal/collector/cpu_bpfel.go
+ebpf-rca/internal/collector/cpu_bpfeb.go
+ebpf-rca/internal/collector/lock_bpfel.go
+ebpf-rca/internal/collector/lock_bpfeb.go
+ebpf-rca/internal/collector/block_bpfel.go
+ebpf-rca/internal/collector/block_bpfeb.go
+ebpf-rca/internal/collector/mem_bpfel.go
+ebpf-rca/internal/collector/mem_bpfeb.go
+ebpf-rca/internal/collector/syscall_bpfel.go
+ebpf-rca/internal/collector/syscall_bpfeb.go
+ebpf-rca/internal/collector/*.o

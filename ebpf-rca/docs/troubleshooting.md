@@ -147,7 +147,8 @@ go version                                 # >= 1.22
 ### 3.6 ③ 内存：无 direct reclaim 事件
 - 症状：注入内存压力但 `direct_reclaim_count` 始终为 0。
 - 原因：系统内存充裕，未触发"直接回收"（只走了后台 kswapd）。
-- 解法：`stress-ng --vm-bytes` 调大（如 90%）或减小可用内存；也可降低 `--threshold`（可用内存下限）触发。
+- 解法：`stress-ng --vm-bytes` 调大（如 90%）或减小可用内存；也可在单场景降低
+  `--threshold`，或在 `all` 模式降低 `--mem-avail-floor-pct` 触发。
 
 ### 3.7 ⑤ syscall：名称不对（尤其 ARM64）
 - 症状：syscall 名显示为 `syscall_<nr>` 或张冠李戴。
@@ -157,11 +158,12 @@ go version                                 # >= 1.22
 
 ### 3.8 ⑤ syscall：开销偏高
 - 说明：`raw_syscalls` 触发极频繁，是预期内最高开销场景。演示/评测可只单独跑、缩短时长；
-  生产可加 target_pid 过滤（见 design.md 扩展点）只观测目标进程。
+  生产可加 `--target-pid <pid>` 只观测目标进程。
 
 ### 3.9 误报 / 漏报调参
-- 误报多：增大 `--threshold` 或 `--sustain`（连续窗口数）。
-- 漏报：减小阈值或 `--sustain`，或增大 `--interval` 让信号更稳定。
+- 误报多：增大当前场景阈值或 `--sustain`（连续窗口数）。
+- 漏报：减小当前场景阈值或 `--sustain`，或增大 `--interval` 让信号更稳定。
+- `--scenario all` 不接受旧的单个 `--threshold`；使用各场景专用阈值参数。
 - 空载自检：不注入负载时跑 60s，应**无**告警。
 
 ### 3.10 stress-ng 缺少某 stressor

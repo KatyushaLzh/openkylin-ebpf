@@ -22,6 +22,7 @@ type scStat struct {
 	TotalNs uint64
 	MaxNs   uint64
 	Comm    [16]byte
+	Slots   [histNSlots]uint64
 }
 
 // SyscallSample 是单个 (进程, syscall) 在窗口内的派生指标。
@@ -41,16 +42,24 @@ type SyscallCollector struct {
 	objs  syscallObjects
 	links []link.Link
 	prev  map[scKey]scStat
+	stale map[scKey]int
 }
 
 // NewSyscallCollector 加载字节码、挂载 raw_syscalls tracepoint。
-func NewSyscallCollector() (*SyscallCollector, error) {
+func NewSyscallCollector(targetPID uint32) (*SyscallCollector, error) {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
-	c := &SyscallCollector{prev: make(map[scKey]scStat)}
+	c := &SyscallCollector{
+		prev:  make(map[scKey]scStat),
+		stale: make(map[scKey]int),
+	}
 	if err := loadSyscallObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
+	}
+	if err := c.objs.TargetPid.Put(uint32(0), targetPID); err != nil {
+		c.Close()
+		return nil, fmt.Errorf("set target pid: %w", err)
 	}
 	en, err := link.Tracepoint("raw_syscalls", "sys_enter", c.objs.HandleEnter, nil)
 	if err != nil {
@@ -95,6 +104,16 @@ func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error)
 		p := c.prev[k]
 		dCount := v.Count - p.Count
 		dTotal := v.TotalNs - p.TotalNs
+		if dCount == 0 && !procExists(k.Pid) {
+			c.stale[k]++
+			if c.stale[k] >= staleWindowsBeforeDelete {
+				_ = c.objs.SyscallStats.Delete(k)
+				delete(cur, k)
+				continue
+			}
+		} else {
+			delete(c.stale, k)
+		}
 		if dCount == 0 {
 			continue
 		}
@@ -103,7 +122,7 @@ func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error)
 			Comm:     commToString(v.Comm),
 			Nr:       k.Nr,
 			Syscall:  syscalls.Name(k.Nr),
-			MaxLatUs: float64(v.MaxNs) / 1000.0,
+			MaxLatUs: float64(maxNSFromSlots(v.Slots, p.Slots)) / 1000.0,
 		}
 		if secs > 0 {
 			s.CallsPerSec = float64(dCount) / secs

@@ -63,5 +63,8 @@ func pickCulprit(snap collector.MemSnapshot) collector.MemProc {
 			best = p
 		}
 	}
+	if best.Pid == 0 {
+		best = snap.TopRSSProc
+	}
 	return best
 }

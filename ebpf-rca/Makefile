@@ -8,7 +8,7 @@ TEST_LOCAL_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),30)
 TEST_NEGATIVE_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),15)
 TEST_REPORT_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),30)
 
-.PHONY: all build generate vmlinux deps bench test-checker test-smoke test-local test-negative test-report test-local-clean clean
+.PHONY: all build generate vmlinux deps bench docs-check test-checker test-smoke test-local test-negative test-report test-local-clean clean
 
 all: build
 
@@ -46,6 +46,10 @@ deps:
 ## 性能开销基准（全部场景），结果写入 bench.md
 bench: build
 	bash scripts/benchmark.sh all bench.md
+
+## 检查技术文档是否与 CLI / 路径保持同步
+docs-check:
+	bash scripts/check_docs.sh
 
 ## 编译本地 E2E 测试输出校验器
 test-checker:

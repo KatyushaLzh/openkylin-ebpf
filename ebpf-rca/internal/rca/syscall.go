@@ -12,18 +12,23 @@ import (
 // 单次平均耗时超过该值(微秒)判为"高耗时型"，否则为"高频型"。
 const syscallHighLatUs = 1000.0
 
+// 单个 syscall 每秒累计耗时超过该值也可触发热点。
+const syscallTimeMsPerSecFloor = 300.0
+
 // BuildSyscallReport 将一次系统调用热点信号转换为结构化诊断报告。
-func BuildSyscallReport(sig detector.SyscallSignal) schema.AnomalyReport {
+func BuildSyscallReport(sig detector.SyscallSignal, callsPerSecThreshold float64, targetPID uint32) schema.AnomalyReport {
 	s := sig.Sample
 	root, suggestion, confidence := classifySyscall(s)
 
 	evidence := []schema.Evidence{
 		{Type: "metric", Name: "syscall", Value: s.Syscall, Desc: "热点系统调用名"},
-		{Type: "metric", Name: "calls_per_sec", Value: round2(s.CallsPerSec), Desc: "每秒调用次数"},
+		{Type: "metric", Name: "syscall_nr", Value: s.Nr, Desc: "热点系统调用号"},
+		{Type: "metric", Name: "calls_per_sec", Value: round2(s.CallsPerSec), Threshold: callsPerSecThreshold, Desc: "每秒调用次数"},
 		{Type: "metric", Name: "avg_lat_us", Value: round2(s.AvgLatUs), Desc: "单次平均耗时(微秒)"},
 		{Type: "metric", Name: "max_lat_us", Value: round2(s.MaxLatUs), Desc: "单次最大耗时(微秒)"},
 		{Type: "metric", Name: "total_ms_per_sec", Value: round2(s.TotalMsPerSec),
-			Desc: "每秒累计占用时间(毫秒)，反映累计耗时占比"},
+			Threshold: syscallTimeMsPerSecFloor, Desc: "每秒累计占用时间(毫秒)，反映累计耗时占比"},
+		{Type: "metric", Name: "target_pid", Value: targetPID, Desc: "用户配置的进程过滤目标；0 表示全局观测"},
 	}
 
 	return schema.AnomalyReport{
@@ -34,9 +39,11 @@ func BuildSyscallReport(sig detector.SyscallSignal) schema.AnomalyReport {
 		},
 		KeyMetrics: map[string]interface{}{
 			"syscall":          s.Syscall,
+			"syscall_nr":       s.Nr,
 			"calls_per_sec":    round2(s.CallsPerSec),
 			"avg_lat_us":       round2(s.AvgLatUs),
 			"total_ms_per_sec": round2(s.TotalMsPerSec),
+			"target_pid":       targetPID,
 		},
 		TimeWindow: schema.TimeWindow{
 			Start: sig.WindowStart.UTC().Format(time.RFC3339),

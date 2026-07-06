@@ -11,6 +11,7 @@ IMAGE="${IMAGE:-ebpf-rca}"
 # 透传用户参数；默认跑 all 场景并生成报告到容器内 /tmp/report.md
 ARGS=("$@")
 [ ${#ARGS[@]} -eq 0 ] && ARGS=(--scenario all --report /tmp/report.md --duration 60s)
+mkdir -p out
 
 echo "[docker_run] 使用 $ENGINE 运行镜像 $IMAGE ..."
 exec "$ENGINE" run --rm -it \

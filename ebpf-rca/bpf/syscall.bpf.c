@@ -16,6 +16,7 @@
 char LICENSE[] SEC("license") = "GPL";
 
 #define TASK_COMM_LEN 16
+#define NSLOTS 32
 
 struct sc_start {
 	__u64 ts;
@@ -33,6 +34,7 @@ struct sc_stat {
 	__u64 total_ns;
 	__u64 max_ns;
 	char  comm[TASK_COMM_LEN];
+	__u64 slots[NSLOTS];
 };
 
 // tid -> 本次 syscall 起点
@@ -50,6 +52,14 @@ struct {
 	__type(key, struct sc_key);
 	__type(value, struct sc_stat);
 } syscall_stats SEC(".maps");
+
+// key 0 -> target tgid；0 表示全局观测。
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u32);
+} target_pid SEC(".maps");
 
 struct sys_enter_tp {
 	__u64 pad;
@@ -73,10 +83,34 @@ static __always_inline struct sc_stat *get_stat(struct sc_key *k)
 	return bpf_map_lookup_elem(&syscall_stats, k);
 }
 
+static __always_inline bool allowed_tgid(__u32 tgid)
+{
+	__u32 key = 0;
+	__u32 *target = bpf_map_lookup_elem(&target_pid, &key);
+	return !target || *target == 0 || *target == tgid;
+}
+
+static __always_inline __u32 log2_u64(__u64 v)
+{
+	__u32 r = 0;
+#pragma unroll
+	for (int i = 0; i < 64; i++) {
+		if (v <= 1)
+			break;
+		v >>= 1;
+		r++;
+	}
+	return r;
+}
+
 SEC("tracepoint/raw_syscalls/sys_enter")
 int handle_enter(struct sys_enter_tp *ctx)
 {
-	__u32 tid = (__u32)bpf_get_current_pid_tgid();
+	__u64 idpid = bpf_get_current_pid_tgid();
+	__u32 tid = (__u32)idpid;
+	__u32 tgid = idpid >> 32;
+	if (!allowed_tgid(tgid))
+		return 0;
 	struct sc_start s = {};
 	s.ts = bpf_ktime_get_ns();
 	s.nr = (__u32)ctx->id;
@@ -89,22 +123,29 @@ int handle_exit(struct sys_exit_tp *ctx)
 {
 	__u64 idpid = bpf_get_current_pid_tgid();
 	__u32 tid = (__u32)idpid;
+	__u32 tgid = idpid >> 32;
+	if (!allowed_tgid(tgid))
+		return 0;
 	struct sc_start *s = bpf_map_lookup_elem(&start, &tid);
 	if (!s)
 		return 0;
 
 	__u64 dur = bpf_ktime_get_ns() - s->ts;
 	struct sc_key k = {};
-	k.pid = idpid >> 32;
+	k.pid = tgid;
 	k.nr = s->nr;
 
 	struct sc_stat *st = get_stat(&k);
 	if (st) {
 		__sync_fetch_and_add(&st->count, 1);
-		__sync_fetch_and_add(&st->total_ns, dur);
-		if (dur > st->max_ns)
-			st->max_ns = dur;
-		bpf_get_current_comm(&st->comm, sizeof(st->comm));
+			__sync_fetch_and_add(&st->total_ns, dur);
+			if (dur > st->max_ns)
+				st->max_ns = dur;
+			__u32 slot = log2_u64(dur);
+			if (slot >= NSLOTS)
+				slot = NSLOTS - 1;
+			__sync_fetch_and_add(&st->slots[slot], 1);
+			bpf_get_current_comm(&st->comm, sizeof(st->comm));
 	}
 	bpf_map_delete_elem(&start, &tid);
 	return 0;
