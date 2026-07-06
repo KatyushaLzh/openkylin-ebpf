@@ -1,0 +1,84 @@
+scenarios:
+  cpu:
+    kind: positive
+    description: CPU saturation injected by stress-ng matrix workload.
+    runner:
+      default_duration_seconds: 30
+      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.80", "--sustain", "2"]
+      workload: "stress-ng --cpu $(nproc) --cpu-method matrixprod --timeout ${DURATION}s --metrics-brief"
+    expected_anomaly_types: ["CPU异常占用"]
+    related_object: process
+    required_key_metrics: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
+    required_evidence_names: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
+    numeric_floors:
+      cpu_util: 0.20
+
+  io:
+    kind: positive
+    description: Random block I/O latency injected by fio.
+    runner:
+      default_duration_seconds: 30
+      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "5", "--sustain", "1"]
+      workload: "fio randrw on a real filesystem path"
+    expected_anomaly_types: ["I/O延迟抖动"]
+    related_object: device
+    required_key_metrics: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
+    required_evidence_names: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
+    numeric_floors:
+      p99_lat_ms: 0.001
+      iops: 1
+
+  mem:
+    kind: positive
+    description: Memory pressure injected by stress-ng vm workers.
+    runner:
+      default_duration_seconds: 30
+      tool_args: ["--scenario", "mem", "--interval", "1s", "--threshold", "40", "--sustain", "1"]
+      workload: "stress-ng --vm 2 --vm-bytes 80% --vm-keep --timeout ${DURATION}s --metrics-brief"
+    expected_anomaly_types: ["内存抖动"]
+    related_object: any
+    required_key_metrics: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
+    required_evidence_names: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
+
+  lock:
+    kind: positive
+    description: Mutex contention injected by stress-ng.
+    runner:
+      default_duration_seconds: 30
+      tool_args: ["--scenario", "lock", "--interval", "1s", "--threshold", "0.10", "--sustain", "1"]
+      workload: "stress-ng --mutex 8 --timeout ${DURATION}s --metrics-brief"
+    expected_anomaly_types: ["锁竞争", "长时间阻塞等待"]
+    related_object: process
+    required_key_metrics: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
+    required_evidence_names: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
+    numeric_floors:
+      offcpu_ratio: 0.001
+
+  syscall:
+    kind: positive
+    description: High frequency read/write syscalls injected by dd with bs=1.
+    runner:
+      default_duration_seconds: 20
+      tool_args: ["--scenario", "syscall", "--interval", "1s", "--threshold", "1000", "--sustain", "1"]
+      workload: "timeout ${DURATION}s dd if=/dev/zero of=/dev/null bs=1 count=200000000"
+    expected_anomaly_types: ["系统调用热点"]
+    related_object: process
+    required_key_metrics: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
+    required_evidence_names: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
+    numeric_floors:
+      calls_per_sec: 1
+
+  idle:
+    kind: negative
+    description: Idle CPU collector should not emit anomaly reports.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.95", "--sustain", "3"]
+      workload: "none"
+    max_reports: 0
+
+  report_all:
+    kind: report
+    description: Markdown report produced by --scenario all under mixed load.
+    required_contains: ["# 系统异常诊断报告", "## 概要", "## 详细诊断"]
+    min_report_count: 1

@@ -1,0 +1,18 @@
+bin/
+bench.md
+report.md
+*.md.bak
+.git/
+# 注意：不要忽略 bpf/vmlinux.h —— CO-RE 编译需要它进入构建上下文
+bpf/bpf/
+internal/collector/cpu_bpfel.go
+internal/collector/cpu_bpfeb.go
+internal/collector/lock_bpfel.go
+internal/collector/lock_bpfeb.go
+internal/collector/block_bpfel.go
+internal/collector/block_bpfeb.go
+internal/collector/mem_bpfel.go
+internal/collector/mem_bpfeb.go
+internal/collector/syscall_bpfel.go
+internal/collector/syscall_bpfeb.go
+internal/collector/*.o
