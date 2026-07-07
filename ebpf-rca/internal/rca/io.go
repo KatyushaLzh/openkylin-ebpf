@@ -2,7 +2,6 @@ package rca
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
@@ -40,10 +39,7 @@ func BuildIOReport(sig detector.IOSignal, p99ThresholdMs float64) schema.Anomaly
 			"throughput_mbps": round2(s.ThroughputMBps),
 			"queue_depth":     s.QueueDepth,
 		},
-		TimeWindow: schema.TimeWindow{
-			Start: sig.WindowStart.UTC().Format(time.RFC3339),
-			End:   sig.WindowEnd.UTC().Format(time.RFC3339),
-		},
+		TimeWindow:         timeWindow(sig.WindowStart, sig.WindowEnd),
 		SuspectedRootCause: root,
 		Confidence:         confidence,
 		EvidenceChain:      evidence,

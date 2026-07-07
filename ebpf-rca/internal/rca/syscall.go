@@ -2,11 +2,11 @@ package rca
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/syscalls"
 )
 
 // 单次平均耗时超过该值(微秒)判为"高耗时型"，否则为"高频型"。
@@ -45,10 +45,7 @@ func BuildSyscallReport(sig detector.SyscallSignal, callsPerSecThreshold float64
 			"total_ms_per_sec": round2(s.TotalMsPerSec),
 			"target_pid":       targetPID,
 		},
-		TimeWindow: schema.TimeWindow{
-			Start: sig.WindowStart.UTC().Format(time.RFC3339),
-			End:   sig.WindowEnd.UTC().Format(time.RFC3339),
-		},
+		TimeWindow:         timeWindow(sig.WindowStart, sig.WindowEnd),
 		SuspectedRootCause: root,
 		Confidence:         confidence,
 		EvidenceChain:      evidence,
@@ -57,6 +54,12 @@ func BuildSyscallReport(sig detector.SyscallSignal, callsPerSecThreshold float64
 }
 
 func classifySyscall(s collector.SyscallSample) (root, suggestion string, confidence float64) {
+	if syscalls.IsWaitingName(s.Syscall) {
+		return fmt.Sprintf("等待型系统调用高频热点：%s 达 %.0f 次/秒，疑似短 timeout 轮询或唤醒风暴",
+				s.Syscall, s.CallsPerSec),
+			fmt.Sprintf("检查 %s 调用的 timeout、事件源与唤醒条件；用阻塞等待或批处理降低空轮询频率", s.Syscall),
+			0.82
+	}
 	if s.AvgLatUs >= syscallHighLatUs {
 		return fmt.Sprintf("高耗时系统调用热点：%s 单次平均 %.0fµs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
 				s.Syscall, s.AvgLatUs),

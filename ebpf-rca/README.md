@@ -37,8 +37,10 @@ bash scripts/repro_syscall.sh 30
 | `--io-p99-threshold-ms` | `20` | I/O P99 时延阈值 |
 | `--mem-avail-floor-pct` | `15` | 可用内存占比下限 |
 | `--lock-offcpu-threshold` | `0.30` | off-CPU 阻塞占比阈值 |
+| `--lock-include-blocking` | `false` | lock 场景保留未命中锁符号的普通长阻塞 |
+| `--lock-topn` | `5` | lock 场景每个窗口最多输出的阻塞线程数 |
 | `--syscall-rate-threshold` | `10000` | syscall 调用频率阈值(次/秒) |
-| `--target-pid` | `0` | syscall 场景进程过滤；0 表示全局 |
+| `--target-pid` | `0` | lock/syscall 场景进程过滤；0 表示全局 |
 | `--sustain` | `3` | 连续多少个窗口触发 |
 | `--duration` | `0` | 总运行时长；0 表示直到 Ctrl-C |
 | `--format` | `json` | `json|yaml|md` |
@@ -87,6 +89,15 @@ make test-local
 make test-negative
 make test-report
 ```
+
+实机 eBPF 全链路复跑可使用本地 wrapper：
+
+```bash
+./out/run-real-ebpf-e2e.sh
+```
+
+该脚本默认离线使用当前用户的 Go module cache，构建阶段不应出现 `go: downloading`；
+root 权限只用于内部 `scripts/test_local.sh ... --no-build` 阶段，不要用 `sudo` 直接运行整个 wrapper。
 
 设计细节见 `docs/design.md`；复现和验收见 `docs/testing.md`、`docs/local-testing.md`；openKylin/eBPF 常见问题见 `docs/troubleshooting.md`；容器运行见 `docs/docker.md`。
 

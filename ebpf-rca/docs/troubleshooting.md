@@ -53,7 +53,22 @@ go version                                 # >= 1.22
 
 ### 1.4 `go build` 拉取依赖失败
 - 症状：`dial tcp ... timeout`（cilium/ebpf、yaml.v3）。
-- 解法：配置 GOPROXY：`go env -w GOPROXY=https://goproxy.cn,direct`，再 `go mod tidy`。
+- 原因：系统依赖已安装不代表 Go module 源码缓存已预热；`GOCACHE` 只缓存编译产物，
+  `GOMODCACHE` 才缓存 `github.com/cilium/ebpf`、`golang.org/x/sys` 等模块源码。
+- 解法：优先使用当前用户的 module cache 做离线构建，避免 root 与普通用户 cache 分裂：
+  ```bash
+  cd ebpf-rca
+  export GOCACHE=/var/tmp/go-cache
+  export GOMODCACHE="${GOMODCACHE:-$(go env GOMODCACHE)}"
+  export GOPROXY=off GOSUMDB=off
+  go mod download
+  make build test-checker test-load
+  ```
+  如果 `go mod download` 在 `GOPROXY=off` 下失败，说明本机缓存不完整；临时打开网络预热一次：
+  ```bash
+  GO_OFFLINE=0 ./out/run-real-ebpf-e2e.sh
+  ```
+  或手动配置镜像：`go env -w GOPROXY=https://goproxy.cn,direct` 后执行 `go mod download`。
 
 ### 1.5 apt/dpkg 处于半配置状态
 - 症状：`dpkg -l` 中出现 `iF iperf3`，或 apt 提示需要先运行 `dpkg --configure -a`。
@@ -86,6 +101,8 @@ go version                                 # >= 1.22
   ```bash
   sudo setcap cap_bpf,cap_perfmon,cap_sys_admin+ep ./bin/ebpf-rca
   ```
+- 若在自动化/沙箱中看到 `sudo: 已设置 no new privileges 标志`，说明当前进程被禁止提权；
+  需要在宿主终端或允许提权的执行环境运行，代码侧无法绕过该内核约束。
 
 ### 2.2 RLIMIT_MEMLOCK / 内存锁定
 - 症状：`failed to create map: operation not permitted`。
@@ -127,9 +144,17 @@ go version                                 # >= 1.22
 
 ### 3.2 【重点】② I/O 注入了 fio 却无任何 I/O 异常
 - 症状：跑 `repro_io.sh` 但工具无输出。
-- 原因：`/tmp` 是 **tmpfs（内存文件系统）**，fio 读写不经过块设备层，自然无 `block_rq` 事件。
-- 解法：把 fio 的 `--filename` 指向**真实磁盘**上的路径（如仓库目录下 `./fio-test.img`），
-  并确认该路径所在分区是块设备：`df -T .`（类型不应为 tmpfs/overlay）。
+- 常见原因：
+  - `/tmp` 是 **tmpfs（内存文件系统）**，fio 读写不经过块设备层，自然无 `block_rq` 事件。
+  - 本机磁盘/缓存路径很快，P99 延迟低于测试阈值；例如 5ms 阈值在本机实测下会导致 `output.json` 为空。
+- 解法：
+  ```bash
+  df -T .                         # 类型不应为 tmpfs/overlay
+  bash scripts/test_local.sh io --duration 30 --no-build
+  # 手工复核时可显式降低 I/O P99 阈值：
+  sudo ./bin/ebpf-rca --scenario io --threshold 0.50 --duration 30s
+  ```
+  当前 E2E 正例使用 `--threshold 0.50`；空闲负例 `idle_io` 仍保留 5ms 和连续窗口约束。
 
 ### 3.3 ④ 锁竞争：阻塞栈显示地址而非函数名
 - 症状：`evidence_chain` 里 stack 是 `0x...` 而非 `futex_wait_queue` 这类符号。
@@ -139,6 +164,8 @@ go version                                 # >= 1.22
 ### 3.4 ④ 锁竞争：未识别为"锁竞争"而是"长阻塞"
 - 原因：阻塞栈未命中 futex/mutex 等关键字（不同内核函数名略有差异）。
 - 解法：实测看到的实际栈帧名，按需在 `internal/rca/lock.go` 的 `lockSymHints` 增补（如 `osq_lock`、`rwsem_down`）。
+  当前默认会过滤未命中锁/同步符号的普通长阻塞；若只是想排查所有 off-CPU 长等待，可加
+  `--lock-include-blocking`，并用 `--lock-topn` 限制每窗口输出数量。
 
 ### 3.5 ④ prev_state 语义
 - 说明：代码以 `prev_state != 0` 判定"阻塞型切出"。个别内核对 state 有 `TASK_REPORT` 高位编码，
@@ -160,13 +187,18 @@ go version                                 # >= 1.22
 - 说明：`raw_syscalls` 触发极频繁，是预期内最高开销场景。演示/评测可只单独跑、缩短时长；
   生产可加 `--target-pid <pid>` 只观测目标进程。
 
-### 3.9 误报 / 漏报调参
+### 3.9 ⑤ syscall：正常等待被报成热点
+- 说明：`epoll_wait/poll/ppoll/select/futex/nanosleep` 等等待型 syscall 不再因为 wall time 长触发；
+  只有 calls/s 超过阈值才会报告，含义是短 timeout 轮询或唤醒风暴。
+- 若仍看到背景噪声，优先用 `--target-pid <pid>` 限定 workload；工具默认还会过滤 `comm=ebpf-rca` 自身。
+
+### 3.10 误报 / 漏报调参
 - 误报多：增大当前场景阈值或 `--sustain`（连续窗口数）。
 - 漏报：减小当前场景阈值或 `--sustain`，或增大 `--interval` 让信号更稳定。
 - `--scenario all` 不接受旧的单个 `--threshold`；使用各场景专用阈值参数。
 - 空载自检：不注入负载时跑 60s，应**无**告警。
 
-### 3.10 stress-ng 缺少某 stressor
+### 3.11 stress-ng 缺少某 stressor
 - 症状：`stress-ng: unrecognized option '--mutex'`。
 - 解法：在仓库根目录运行 `bash setup_env.sh --no-build` 准备本地源码版；
   当前测试脚本会优先使用 `../.build_deps/bin/stress-ng`。

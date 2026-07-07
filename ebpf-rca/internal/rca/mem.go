@@ -1,8 +1,6 @@
 package rca
 
 import (
-	"time"
-
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
@@ -27,6 +25,8 @@ func BuildMemReport(sig detector.MemSignal, availFloorPct float64) schema.Anomal
 		{Type: "metric", Name: "minor_fault", Value: c.MinFlt, Desc: "窗口内 minor page fault 增量"},
 		{Type: "metric", Name: "rss_kb", Value: c.RSSKB, Desc: "进程 RSS 采样值(kB)"},
 		{Type: "metric", Name: "anon_rss_kb", Value: c.AnonRSSKB, Desc: "进程匿名 RSS 采样值(kB)"},
+		{Type: "metric", Name: "rss_delta_kb", Value: c.RSSDeltaKB, Desc: "窗口内 RSS 增量(kB)"},
+		{Type: "metric", Name: "anon_rss_delta_kb", Value: c.AnonRSSDeltaKB, Desc: "窗口内匿名 RSS 增量(kB)"},
 	}
 
 	related := schema.RelatedObject{}
@@ -44,11 +44,10 @@ func BuildMemReport(sig detector.MemSignal, availFloorPct float64) schema.Anomal
 			"major_fault":          c.MajFlt,
 			"rss_kb":               c.RSSKB,
 			"anon_rss_kb":          c.AnonRSSKB,
+			"rss_delta_kb":         c.RSSDeltaKB,
+			"anon_rss_delta_kb":    c.AnonRSSDeltaKB,
 		},
-		TimeWindow: schema.TimeWindow{
-			Start: sig.WindowStart.UTC().Format(time.RFC3339),
-			End:   sig.WindowEnd.UTC().Format(time.RFC3339),
-		},
+		TimeWindow:         timeWindow(sig.WindowStart, sig.WindowEnd),
 		SuspectedRootCause: root,
 		Confidence:         confidence,
 		EvidenceChain:      evidence,
@@ -66,6 +65,11 @@ func classifyMem(c collector.MemProc) (root, suggestion string, confidence float
 		return "可用内存偏低且 major fault 升高，疑似工作集超出物理内存导致换入/回源磁盘",
 			"评估扩容内存或减少常驻内存；检查是否缓存与业务内存竞争",
 			0.75
+	}
+	if c.RSSDeltaKB >= collector.MemRSSGrowthSignalKB || c.AnonRSSDeltaKB >= collector.MemRSSGrowthSignalKB {
+		return "业务进程 RSS/匿名 RSS 在采样窗口内快速增长，疑似内存突增或泄漏导致系统压力上升",
+			"检查该进程近期分配路径、缓存增长与对象生命周期；必要时加 cgroup 限额并采样 heap/smaps",
+			0.8
 	}
 	if c.Pid != 0 && c.RSSKB > 0 {
 		return "系统可用内存持续偏低，最大 RSS 进程可能贡献主要内存占用（未观察到 direct reclaim）",

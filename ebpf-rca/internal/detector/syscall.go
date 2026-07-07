@@ -4,10 +4,13 @@ import (
 	"time"
 
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
+	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/syscalls"
 )
 
 // 单个 syscall 累计耗时超过该比例(ms/秒)视为"高耗时热点"，与高频热点并列触发。
 const syscallTimeMsPerSecFloor = 300.0
+
+const defaultIgnoredSyscallComm = "ebpf-rca"
 
 // SyscallSignal 表示一次已确认的系统调用热点异常。
 type SyscallSignal struct {
@@ -47,7 +50,10 @@ func (d *SyscallDetector) Detect(samples []collector.SyscallSample, now time.Tim
 	var signals []SyscallSignal
 
 	for _, s := range samples {
-		hot := s.CallsPerSec >= d.CallsPerSecFloor || s.TotalMsPerSec >= syscallTimeMsPerSecFloor
+		if isDefaultIgnoredSyscallComm(s.Comm) {
+			continue
+		}
+		hot := isSyscallHot(s, d.CallsPerSecFloor)
 		if !hot {
 			continue
 		}
@@ -75,4 +81,15 @@ func (d *SyscallDetector) Detect(samples []collector.SyscallSample, now time.Tim
 		}
 	}
 	return signals
+}
+
+func isSyscallHot(s collector.SyscallSample, callsPerSecFloor float64) bool {
+	if syscalls.IsWaitingName(s.Syscall) {
+		return s.CallsPerSec >= callsPerSecFloor
+	}
+	return s.CallsPerSec >= callsPerSecFloor || s.TotalMsPerSec >= syscallTimeMsPerSecFloor
+}
+
+func isDefaultIgnoredSyscallComm(comm string) bool {
+	return comm == defaultIgnoredSyscallComm
 }

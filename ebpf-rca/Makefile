@@ -8,7 +8,7 @@ TEST_LOCAL_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),30)
 TEST_NEGATIVE_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),15)
 TEST_REPORT_DURATION ?= $(if $(TEST_DURATION),$(TEST_DURATION),30)
 
-.PHONY: all build generate vmlinux deps bench docs-check test-checker test-smoke test-local test-negative test-report test-local-clean clean
+.PHONY: all build generate vmlinux deps bench docs-check test-checker test-load test-smoke test-local test-negative test-report test-local-clean clean
 
 all: build
 
@@ -56,20 +56,25 @@ test-checker:
 	mkdir -p bin
 	go build -buildvcs=false -o bin/rca-testcheck ./cmd/rca-testcheck
 
+## 编译本地 E2E 确定性测试负载
+test-load:
+	mkdir -p bin
+	go build -buildvcs=false -o bin/rca-testload ./cmd/rca-testload
+
 ## 短烟测：CPU + syscall 两类，适合快速确认链路
-test-smoke: build test-checker
+test-smoke: build test-checker test-load
 	bash scripts/test_local.sh smoke --duration $(TEST_SMOKE_DURATION) --no-build
 
 ## 本地 E2E：五类正向异常场景
-test-local: build test-checker
+test-local: build test-checker test-load
 	bash scripts/test_local.sh all --duration $(TEST_LOCAL_DURATION) --no-build
 
 ## 空载负向测试：检查基础误报
-test-negative: build test-checker
+test-negative: build test-checker test-load
 	bash scripts/test_local.sh negative --duration $(TEST_NEGATIVE_DURATION) --no-build
 
 ## 汇总报告测试：--scenario all + --report
-test-report: build test-checker
+test-report: build test-checker test-load
 	bash scripts/test_local.sh report --duration $(TEST_REPORT_DURATION) --no-build
 
 ## 清理本地测试产物
@@ -77,5 +82,5 @@ test-local-clean:
 	rm -rf test-results
 
 clean:
-	rm -f bin/$(APP) bin/rca-testcheck internal/collector/*_bpfel.go \
+	rm -f bin/$(APP) bin/rca-testcheck bin/rca-testload internal/collector/*_bpfel.go \
 	      internal/collector/*_bpfeb.go internal/collector/*.o

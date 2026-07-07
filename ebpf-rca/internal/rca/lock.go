@@ -3,7 +3,6 @@ package rca
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/detector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/schema"
@@ -12,13 +11,14 @@ import (
 // 阻塞栈中出现这些符号片段，判定为锁/同步等待（而非纯 I/O 睡眠）。
 var lockSymHints = []string{
 	"futex", "mutex", "rwsem", "rt_mutex", "down_", "__lock", "semaphore", "rwlock",
+	"flock", "locks_", "filelock", "posix_lock",
 }
 
 // BuildLockReport 将一次锁竞争/长阻塞信号转换为结构化诊断报告。
 // stack 为已符号化的阻塞内核栈（top-N），由 collector.ResolveStack 提供。
 func BuildLockReport(sig detector.LockSignal, stack []string, offcpuThreshold float64) schema.AnomalyReport {
 	s := sig.Sample
-	isLock := stackHasLock(stack)
+	isLock := StackHasLock(stack)
 	stackStatus := "symbolized"
 	if len(stack) == 0 {
 		stackStatus = "unavailable"
@@ -79,10 +79,7 @@ func BuildLockReport(sig detector.LockSignal, stack []string, offcpuThreshold fl
 			"last_waker_tid": s.LastWaker,
 			"stack_status":   stackStatus,
 		},
-		TimeWindow: schema.TimeWindow{
-			Start: sig.WindowStart.UTC().Format(time.RFC3339),
-			End:   sig.WindowEnd.UTC().Format(time.RFC3339),
-		},
+		TimeWindow:         timeWindow(sig.WindowStart, sig.WindowEnd),
 		SuspectedRootCause: root,
 		Confidence:         confidence,
 		EvidenceChain:      evidence,
@@ -90,7 +87,8 @@ func BuildLockReport(sig detector.LockSignal, stack []string, offcpuThreshold fl
 	}
 }
 
-func stackHasLock(stack []string) bool {
+// StackHasLock 判断阻塞栈是否命中锁/同步等待符号。
+func StackHasLock(stack []string) bool {
 	for _, fr := range stack {
 		low := strings.ToLower(fr)
 		for _, h := range lockSymHints {

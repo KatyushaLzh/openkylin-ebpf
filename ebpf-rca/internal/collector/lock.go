@@ -44,7 +44,7 @@ type LockCollector struct {
 }
 
 // NewLockCollector 加载字节码、挂载 tracepoint、载入内核符号表。
-func NewLockCollector() (*LockCollector, error) {
+func NewLockCollector(targetPID uint32) (*LockCollector, error) {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
@@ -54,6 +54,10 @@ func NewLockCollector() (*LockCollector, error) {
 	}
 	if err := loadLockObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
+	}
+	if err := c.objs.TargetPid.Put(uint32(0), targetPID); err != nil {
+		c.Close()
+		return nil, fmt.Errorf("set target pid: %w", err)
 	}
 	sw, err := link.Tracepoint("sched", "sched_switch", c.objs.HandleSwitch, nil)
 	if err != nil {
@@ -144,7 +148,11 @@ func (c *LockCollector) ResolveStack(id int32, max int) []string {
 		if a == 0 {
 			break
 		}
-		out = append(out, c.ksyms.Resolve(a))
+		if c.ksyms != nil {
+			out = append(out, c.ksyms.Resolve(a))
+		} else {
+			out = append(out, fmt.Sprintf("0x%x", a))
+		}
 		if len(out) >= max {
 			break
 		}

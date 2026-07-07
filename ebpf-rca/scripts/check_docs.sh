@@ -22,6 +22,8 @@ required_flags=(
 	--io-p99-threshold-ms
 	--mem-avail-floor-pct
 	--lock-offcpu-threshold
+	--lock-include-blocking
+	--lock-topn
 	--syscall-rate-threshold
 	--target-pid
 	--report

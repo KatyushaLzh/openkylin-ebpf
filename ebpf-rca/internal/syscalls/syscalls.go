@@ -45,6 +45,24 @@ var generic = map[uint32]string{
 	278: "getrandom",
 }
 
+var waitingNames = map[string]bool{
+	"clock_nanosleep": true,
+	"epoll_pwait":     true,
+	"epoll_pwait2":    true,
+	"epoll_wait":      true,
+	"futex":           true,
+	"futex_waitv":     true,
+	"nanosleep":       true,
+	"pause":           true,
+	"poll":            true,
+	"ppoll":           true,
+	"pselect6":        true,
+	"rt_sigsuspend":   true,
+	"select":          true,
+	"wait4":           true,
+	"waitid":          true,
+}
+
 // Name 返回当前架构下 syscall 号对应的名称，未知则回退 "syscall_<nr>"。
 func Name(nr uint32) string {
 	var t map[uint32]string
@@ -58,4 +76,10 @@ func Name(nr uint32) string {
 		return name
 	}
 	return fmt.Sprintf("syscall_%d", nr)
+}
+
+// IsWaitingName 判断 syscall 是否主要表达“等待事件/超时/唤醒”语义。
+// 这些调用 wall time 长通常是正常阻塞，不应仅因累计耗时高被报为热点。
+func IsWaitingName(name string) bool {
+	return waitingNames[name]
 }

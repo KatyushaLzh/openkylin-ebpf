@@ -49,10 +49,7 @@ func BuildCPUReport(sig detector.Signal, threshold float64) schema.AnomalyReport
 			"ctx_switch_per_min": round2(s.CtxPerMin),
 			"runq_wait_us":       round2(s.RunqWaitUs),
 		},
-		TimeWindow: schema.TimeWindow{
-			Start: sig.WindowStart.UTC().Format(time.RFC3339),
-			End:   sig.WindowEnd.UTC().Format(time.RFC3339),
-		},
+		TimeWindow:         timeWindow(sig.WindowStart, sig.WindowEnd),
 		SuspectedRootCause: rootCause,
 		Confidence:         confidence,
 		EvidenceChain:      evidence,
@@ -79,4 +76,14 @@ func classifyCPU(s collector.Sample) (root, suggestion string, confidence float6
 
 func round2(f float64) float64 {
 	return math.Round(f*100) / 100
+}
+
+func timeWindow(start, end time.Time) schema.TimeWindow {
+	if !start.Before(end) {
+		start = end.Add(-time.Second)
+	}
+	return schema.TimeWindow{
+		Start: start.UTC().Format(time.RFC3339),
+		End:   end.UTC().Format(time.RFC3339),
+	}
 }

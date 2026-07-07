@@ -9,12 +9,23 @@
 ```bash
 # 先进入仓库根目录
 cd ebpf-rca
-make deps && make vmlinux && make build
+make deps && make vmlinux
+make build test-checker test-load
 ```
 
 `make deps` 会转调仓库根目录的 `setup_env.sh --no-build`。在 openKylin 上不要依赖
 `apt-get install bpftool stress-ng` 一步成功：`bpftool` 通常只是 wrapper，`stress-ng` 可能因
 `libipsec-mb0` 缺失无法安装；脚本会把可用二进制放到 `.build_deps/`。
+
+若网络受限但依赖已经在本机 Go module cache 中，可离线构建：
+
+```bash
+export GOCACHE=/var/tmp/go-cache
+export GOMODCACHE="${GOMODCACHE:-$(go env GOMODCACHE)}"
+export GOPROXY=off GOSUMDB=off
+go mod download
+make build test-checker test-load
+```
 
 ## 1. 五类异常场景复现
 
@@ -57,12 +68,46 @@ make bench            # 全部场景，结果写入 bench.md
 ## 4. 自动化本地 E2E
 
 ```bash
-make test-smoke       # CPU + syscall 快速链路
-make test-local       # 五类正向异常
-make test-negative    # 空载误报检查
-make test-report      # Markdown 汇总报告
-make docs-check       # CLI 参数与 README 同步检查
+bash scripts/test_local.sh smoke --workload deterministic  # CPU + syscall 快速链路
+bash scripts/test_local.sh all --workload deterministic    # 五类正向异常
+bash scripts/test_local.sh negative                        # 分场景空载误报检查
+bash scripts/test_local.sh report --workload deterministic # Markdown 汇总报告
+make docs-check                                            # CLI 参数与 README 同步检查
 ```
 
 每次运行会把 JSON 输出、负载日志、校验摘要写入 `test-results/<timestamp>/`。
 断言规格在 `tests/scenarios.yaml`，校验器为 `cmd/rca-testcheck`。
+
+自动化 E2E 的核心不是只看“是否有报告”，而是检查报告对象是否命中本次 workload：
+
+- CPU / lock：报告对象按 tid 匹配 workload 线程集合。
+- mem / syscall：报告对象按 tgid 匹配 workload 进程集合。
+- I/O：报告块设备匹配测试文件所在设备；分区设备会归一到父块设备。
+- report_all：同时传入 CPU 和 syscall 两份 ground truth，校验汇总报告覆盖本次 workload。
+
+正例中未命中 workload 的额外报告会进入 `warnings/extra_reports`，默认不让测试失败，但用于暴露误报。
+负例已拆成 `idle_cpu / idle_io / idle_lock / idle_syscall`，分别约束各探针空闲窗口下的误报。
+
+## 5. 实机一键复跑
+
+本机完整验证可直接运行：
+
+```bash
+./out/run-real-ebpf-e2e.sh
+```
+
+该 wrapper 默认 `GO_OFFLINE=1`，使用当前用户 `GOMODCACHE` 离线构建，随后以
+`sudo -n /usr/bin/bash scripts/test_local.sh ... --no-build` 进入 root/eBPF 阶段。
+不要用 `sudo` 直接运行整个 wrapper，否则 root 与普通用户的 Go cache 会分裂。
+
+最近一次本机实测通过：
+
+| 阶段 | 结果目录 |
+|---|---|
+| preflight + smoke | `test-results/20260707-212151` |
+| lock | `test-results/20260707-212241` |
+| syscall | `test-results/20260707-212316` |
+| io | `test-results/20260707-212342` |
+| all | `test-results/20260707-212417` |
+| negative | `test-results/20260707-212712` |
+| report | `test-results/20260707-212833` |

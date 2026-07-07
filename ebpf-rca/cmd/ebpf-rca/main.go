@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 	"time"
 
@@ -36,6 +37,12 @@ type config struct {
 	duration  time.Duration
 	format    string
 	targetPID uint32
+	lock      lockConfig
+}
+
+type lockConfig struct {
+	includeBlocking bool
+	topN            int
 }
 
 type thresholds struct {
@@ -65,8 +72,10 @@ func main() {
 	ioP99Threshold := flag.Float64("io-p99-threshold-ms", defaultThresholds.IOP99Ms, "I/O P99 时延阈值(毫秒)")
 	memAvailFloor := flag.Float64("mem-avail-floor-pct", defaultThresholds.MemAvailFloorPct, "内存可用占比下限(%)")
 	lockOffcpuThreshold := flag.Float64("lock-offcpu-threshold", defaultThresholds.LockOffcpuRatio, "锁/阻塞 off-CPU 占比阈值")
+	lockIncludeBlocking := flag.Bool("lock-include-blocking", false, "lock 场景保留未命中锁/同步符号的普通长阻塞报告")
+	lockTopN := flag.Int("lock-topn", 5, "lock 场景每个窗口最多输出的 Top-N 阻塞线程")
 	syscallRateThreshold := flag.Float64("syscall-rate-threshold", defaultThresholds.SyscallCallsPerSec, "系统调用频率阈值(次/秒)")
-	targetPID := flag.Uint("target-pid", 0, "仅 syscall 场景：只观测指定进程 pid/tgid（0=全局）")
+	targetPID := flag.Uint("target-pid", 0, "lock/syscall 场景：只观测指定进程 pid/tgid（0=全局）")
 	sustain := flag.Int("sustain", 3, "连续超过阈值多少个窗口才触发")
 	duration := flag.Duration("duration", 0, "总运行时长（0 = 直到 Ctrl-C）")
 	format := flag.String("format", "json", "流式输出格式：json|yaml|md")
@@ -89,6 +98,10 @@ func main() {
 	}
 	if *interval <= 0 {
 		fmt.Fprintln(os.Stderr, "配置错误: --interval 必须大于 0")
+		os.Exit(2)
+	}
+	if *lockTopN < 1 {
+		fmt.Fprintln(os.Stderr, "配置错误: --lock-topn 必须大于 0")
 		os.Exit(2)
 	}
 	if *targetPID > uint(^uint32(0)) {
@@ -114,6 +127,10 @@ func main() {
 		duration:  *duration,
 		format:    *format,
 		targetPID: uint32(*targetPID),
+		lock: lockConfig{
+			includeBlocking: *lockIncludeBlocking,
+			topN:            *lockTopN,
+		},
 	}
 
 	// 结果处理：报告模式聚合，否则流式输出。
@@ -298,14 +315,14 @@ func runMem(ctx context.Context, cfg config, h handler) error {
 }
 
 func runLock(ctx context.Context, cfg config, h handler) error {
-	col, err := collector.NewLockCollector()
+	col, err := collector.NewLockCollector(cfg.targetPID)
 	if err != nil {
 		return err
 	}
 	defer col.Close()
 	det := detector.NewLockDetector(cfg.threshold.LockOffcpuRatio, cfg.sustain)
-	fmt.Fprintf(os.Stderr, "[ebpf-rca] 场景=lock interval=%s threshold=%.2f sustain=%d\n",
-		cfg.interval, cfg.threshold.LockOffcpuRatio, cfg.sustain)
+	fmt.Fprintf(os.Stderr, "[ebpf-rca] 场景=lock interval=%s threshold=%.2f target_pid=%d sustain=%d include_blocking=%t topn=%d\n",
+		cfg.interval, cfg.threshold.LockOffcpuRatio, cfg.targetPID, cfg.sustain, cfg.lock.includeBlocking, cfg.lock.topN)
 	_, _ = col.Poll(cfg.interval)
 	runLoop(ctx, cfg, func(now time.Time) {
 		samples, err := col.Poll(cfg.interval)
@@ -313,8 +330,9 @@ func runLock(ctx context.Context, cfg config, h handler) error {
 			fmt.Fprintln(os.Stderr, "poll:", err)
 			return
 		}
-		for _, sig := range det.Detect(samples, now) {
-			stack := col.ResolveStack(sig.Sample.StackID, 8)
+		filtered, stacks := prepareLockSamples(samples, col.ResolveStack, cfg.lock)
+		for _, sig := range det.Detect(filtered, now) {
+			stack := stacks[sig.Sample.Pid]
 			h(rca.BuildLockReport(sig, stack, cfg.threshold.LockOffcpuRatio))
 		}
 	})
@@ -403,7 +421,7 @@ func runAll(ctx context.Context, cfg config, h handler) error {
 		})
 	}
 
-	if col, err := collector.NewLockCollector(); err != nil {
+	if col, err := collector.NewLockCollector(cfg.targetPID); err != nil {
 		warn("lock", err)
 	} else {
 		closers = append(closers, col.Close)
@@ -414,8 +432,9 @@ func runAll(ctx context.Context, cfg config, h handler) error {
 			if e != nil {
 				return
 			}
-			for _, sig := range det.Detect(s, now) {
-				stack := col.ResolveStack(sig.Sample.StackID, 8)
+			filtered, stacks := prepareLockSamples(s, col.ResolveStack, cfg.lock)
+			for _, sig := range det.Detect(filtered, now) {
+				stack := stacks[sig.Sample.Pid]
 				h(rca.BuildLockReport(sig, stack, cfg.threshold.LockOffcpuRatio))
 			}
 		})
@@ -452,4 +471,43 @@ func runAll(ctx context.Context, cfg config, h handler) error {
 		}
 	})
 	return nil
+}
+
+type lockCandidate struct {
+	sample collector.LockSample
+	stack  []string
+}
+
+func prepareLockSamples(samples []collector.LockSample, resolve func(int32, int) []string, cfg lockConfig) ([]collector.LockSample, map[uint32][]string) {
+	candidates := make([]lockCandidate, 0, len(samples))
+	for _, sample := range samples {
+		stack := resolve(sample.StackID, 8)
+		if !cfg.includeBlocking && !rca.StackHasLock(stack) {
+			continue
+		}
+		candidates = append(candidates, lockCandidate{sample: sample, stack: stack})
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		a, b := candidates[i].sample, candidates[j].sample
+		if a.OffcpuRatio != b.OffcpuRatio {
+			return a.OffcpuRatio > b.OffcpuRatio
+		}
+		if a.MaxOffcpuMs != b.MaxOffcpuMs {
+			return a.MaxOffcpuMs > b.MaxOffcpuMs
+		}
+		if a.BlockCount != b.BlockCount {
+			return a.BlockCount > b.BlockCount
+		}
+		return a.Pid < b.Pid
+	})
+	if cfg.topN > 0 && len(candidates) > cfg.topN {
+		candidates = candidates[:cfg.topN]
+	}
+	out := make([]collector.LockSample, 0, len(candidates))
+	stacks := make(map[uint32][]string, len(candidates))
+	for _, c := range candidates {
+		out = append(out, c.sample)
+		stacks[c.sample.Pid] = c.stack
+	}
+	return out, stacks
 }

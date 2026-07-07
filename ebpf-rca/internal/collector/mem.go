@@ -21,6 +21,11 @@ type memStat struct {
 
 type fault struct{ maj, min uint64 }
 
+type rssSample struct{ rss, anon uint64 }
+
+// MemRSSGrowthSignalKB 是把 RSS/AnonRSS 增长视作强内存信号的最小窗口增量。
+const MemRSSGrowthSignalKB uint64 = 64 * 1024
+
 // MemProc 是单个进程在窗口内的内存压力贡献。
 type MemProc struct {
 	Pid                uint32
@@ -31,6 +36,8 @@ type MemProc struct {
 	MinFlt             uint64  // 窗口内 minor fault 增量
 	RSSKB              uint64  // RSS 采样值(kB)
 	AnonRSSKB          uint64  // 匿名 RSS 采样值(kB)
+	RSSDeltaKB         uint64  // 窗口内 RSS 增量(kB)
+	AnonRSSDeltaKB     uint64  // 窗口内匿名 RSS 增量(kB)
 }
 
 // MemSnapshot 是一个窗口的系统内存状态与 per-process 压力贡献。
@@ -49,6 +56,7 @@ type MemCollector struct {
 	links      []link.Link
 	prev       map[uint32]memStat
 	prevFault  map[uint32]fault
+	prevRSS    map[uint32]rssSample
 	prevKswapd uint64
 	stale      map[uint32]int
 }
@@ -61,6 +69,7 @@ func NewMemCollector() (*MemCollector, error) {
 	c := &MemCollector{
 		prev:      make(map[uint32]memStat),
 		prevFault: make(map[uint32]fault),
+		prevRSS:   make(map[uint32]rssSample),
 		stale:     make(map[uint32]int),
 	}
 	if err := loadMemObjects(&c.objs, nil); err != nil {
@@ -105,7 +114,17 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 	if total > 0 {
 		snap.MemAvailablePct = float64(avail) / float64(total) * 100
 	}
-	snap.TopRSSProc = readTopRSSProc()
+	rssSnap := readProcRSSSnapshot()
+	rssPrimed := len(c.prevRSS) > 0
+	for pid, proc := range rssSnap {
+		if rssPrimed {
+			prev := c.prevRSS[pid]
+			proc.RSSDeltaKB = saturatingSub(proc.RSSKB, prev.rss)
+			proc.AnonRSSDeltaKB = saturatingSub(proc.AnonRSSKB, prev.anon)
+			rssSnap[pid] = proc
+		}
+	}
+	snap.TopRSSProc = topRSSProc(rssSnap)
 
 	// kswapd 唤醒(全局)增量
 	var kw uint64
@@ -125,12 +144,15 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 		return snap, fmt.Errorf("iterate mem_stats: %w", err)
 	}
 
+	seenBPF := make(map[uint32]bool, len(cur))
 	for pid, v := range cur {
+		seenBPF[pid] = true
 		p := c.prev[pid]
 		dCount := v.DirectReclaimCount - p.DirectReclaimCount
 		dNs := v.DirectReclaimNs - p.DirectReclaimNs
 		maj, min := readProcFaults(pid)
 		pf := c.prevFault[pid]
+		rssProc := rssSnap[pid]
 		proc := MemProc{
 			Pid:                pid,
 			Comm:               commToString(v.Comm),
@@ -138,8 +160,14 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 			DirectReclaimMs:    float64(dNs) / 1e6,
 			MajFlt:             saturatingSub(maj, pf.maj),
 			MinFlt:             saturatingSub(min, pf.min),
+			RSSKB:              rssProc.RSSKB,
+			AnonRSSKB:          rssProc.AnonRSSKB,
+			RSSDeltaKB:         rssProc.RSSDeltaKB,
+			AnonRSSDeltaKB:     rssProc.AnonRSSDeltaKB,
 		}
-		proc.RSSKB, proc.AnonRSSKB = readProcRSS(pid)
+		if proc.Comm == "" {
+			proc.Comm = rssProc.Comm
+		}
 		c.prevFault[pid] = fault{maj: maj, min: min}
 		if shouldDeleteStale(c.stale, pid, dCount == 0 && dNs == 0) {
 			_ = c.objs.MemStats.Delete(pid)
@@ -148,12 +176,72 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 			delete(cur, pid)
 			continue
 		}
-		if proc.DirectReclaimCount > 0 || proc.MajFlt > 0 {
+		if hasCollectedMemProcSignal(proc) {
+			snap.Procs = append(snap.Procs, proc)
+		}
+	}
+	for pid, proc := range rssSnap {
+		if seenBPF[pid] {
+			continue
+		}
+		if proc.RSSDeltaKB >= MemRSSGrowthSignalKB || proc.AnonRSSDeltaKB >= MemRSSGrowthSignalKB {
 			snap.Procs = append(snap.Procs, proc)
 		}
 	}
 	c.prev = cur
+	c.prevRSS = snapshotRSS(rssSnap)
 	return snap, nil
+}
+
+func hasCollectedMemProcSignal(proc MemProc) bool {
+	return proc.DirectReclaimCount > 0 ||
+		proc.MajFlt > 0 ||
+		proc.RSSDeltaKB >= MemRSSGrowthSignalKB ||
+		proc.AnonRSSDeltaKB >= MemRSSGrowthSignalKB
+}
+
+func readProcRSSSnapshot() map[uint32]MemProc {
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return nil
+	}
+	out := make(map[uint32]MemProc)
+	for _, ent := range entries {
+		if !ent.IsDir() {
+			continue
+		}
+		pid64, err := strconv.ParseUint(ent.Name(), 10, 32)
+		if err != nil {
+			continue
+		}
+		pid := uint32(pid64)
+		rss, anon := readProcRSS(pid)
+		out[pid] = MemProc{
+			Pid:       pid,
+			Comm:      readProcName(pid),
+			RSSKB:     rss,
+			AnonRSSKB: anon,
+		}
+	}
+	return out
+}
+
+func topRSSProc(procs map[uint32]MemProc) MemProc {
+	var best MemProc
+	for _, proc := range procs {
+		if proc.RSSKB > best.RSSKB {
+			best = proc
+		}
+	}
+	return best
+}
+
+func snapshotRSS(procs map[uint32]MemProc) map[uint32]rssSample {
+	next := make(map[uint32]rssSample, len(procs))
+	for pid, proc := range procs {
+		next[pid] = rssSample{rss: proc.RSSKB, anon: proc.AnonRSSKB}
+	}
+	return next
 }
 
 func readTopRSSProc() MemProc {

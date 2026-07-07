@@ -55,6 +55,14 @@ struct {
 	__uint(value_size, MAX_STACK_DEPTH * sizeof(__u64));
 } stackmap SEC(".maps");
 
+// key 0 -> target tgid；0 表示全局观测。
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u32);
+} target_pid SEC(".maps");
+
 struct sched_switch_tp {
 	__u64 pad;
 	char  prev_comm[TASK_COMM_LEN];
@@ -84,6 +92,14 @@ static __always_inline struct lock_stat *get_stat(__u32 tid)
 	return bpf_map_lookup_elem(&lock_stats, &tid);
 }
 
+static __always_inline bool allowed_current_tgid(void)
+{
+	__u32 key = 0;
+	__u32 *target = bpf_map_lookup_elem(&target_pid, &key);
+	__u32 tgid = bpf_get_current_pid_tgid() >> 32;
+	return !target || *target == 0 || *target == tgid;
+}
+
 static __always_inline __u32 log2_u64(__u64 v)
 {
 	__u32 r = 0;
@@ -105,7 +121,7 @@ int handle_switch(struct sched_switch_tp *ctx)
 	__u32 next = (__u32)ctx->next_pid;
 
 	// prev 因阻塞被切出（prev_state != 0 表示非 RUNNING，排除普通抢占）
-	if (prev != 0 && ctx->prev_state != 0) {
+	if (prev != 0 && ctx->prev_state != 0 && allowed_current_tgid()) {
 		struct offcpu_info info = {};
 		info.ts = now;
 		info.stackid = bpf_get_stackid(ctx, &stackmap, 0);
@@ -145,6 +161,9 @@ int handle_wakeup(struct sched_wakeup_tp *ctx)
 		return 0;
 	// 唤醒发生在唤醒者上下文：current 即 waker
 	__u32 waker = (__u32)bpf_get_current_pid_tgid();
+	struct offcpu_info *info = bpf_map_lookup_elem(&offcpu_start, &wakee);
+	if (!info)
+		return 0;
 	struct lock_stat *st = get_stat(wakee);
 	if (st)
 		st->last_waker = waker;

@@ -39,10 +39,11 @@ type SyscallSample struct {
 
 // SyscallCollector 加载 syscall 热点场景的 eBPF 程序。
 type SyscallCollector struct {
-	objs  syscallObjects
-	links []link.Link
-	prev  map[scKey]scStat
-	stale map[scKey]int
+	objs      syscallObjects
+	links     []link.Link
+	prev      map[scKey]scStat
+	stale     map[scKey]int
+	targetPID uint32
 }
 
 // NewSyscallCollector 加载字节码、挂载 raw_syscalls tracepoint。
@@ -51,8 +52,9 @@ func NewSyscallCollector(targetPID uint32) (*SyscallCollector, error) {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
 	c := &SyscallCollector{
-		prev:  make(map[scKey]scStat),
-		stale: make(map[scKey]int),
+		prev:      make(map[scKey]scStat),
+		stale:     make(map[scKey]int),
+		targetPID: targetPID,
 	}
 	if err := loadSyscallObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
@@ -117,9 +119,13 @@ func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error)
 		if dCount == 0 {
 			continue
 		}
+		comm := commToString(v.Comm)
+		if c.targetPID == 0 && comm == "ebpf-rca" {
+			continue
+		}
 		s := SyscallSample{
 			Pid:      k.Pid,
-			Comm:     commToString(v.Comm),
+			Comm:     comm,
 			Nr:       k.Nr,
 			Syscall:  syscalls.Name(k.Nr),
 			MaxLatUs: float64(maxNSFromSlots(v.Slots, p.Slots)) / 1000.0,

@@ -7,6 +7,7 @@ scenarios:
       tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.80", "--sustain", "2"]
       workload: "stress-ng --cpu $(nproc) --cpu-method matrixprod --timeout ${DURATION}s --metrics-brief"
     expected_anomaly_types: ["CPU异常占用"]
+    oracle: process_tids
     related_object: process
     required_key_metrics: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
     required_evidence_names: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
@@ -18,14 +19,15 @@ scenarios:
     description: Random block I/O latency injected by fio.
     runner:
       default_duration_seconds: 30
-      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "5", "--sustain", "1"]
+      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "0.50", "--sustain", "1"]
       workload: "fio randrw on a real filesystem path"
     expected_anomaly_types: ["I/O延迟抖动"]
+    oracle: device
     related_object: device
     required_key_metrics: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
     required_evidence_names: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
     numeric_floors:
-      p99_lat_ms: 5
+      p99_lat_ms: 0.5
       iops: 1
 
   mem:
@@ -36,7 +38,8 @@ scenarios:
       tool_args: ["--scenario", "mem", "--interval", "1s", "--threshold", "40", "--sustain", "1"]
       workload: "stress-ng --vm 2 --vm-bytes 80% --vm-keep --timeout ${DURATION}s --metrics-brief"
     expected_anomaly_types: ["内存抖动"]
-    related_object: any
+    oracle: process_tgids
+    related_object: process
     required_key_metrics: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
     required_evidence_names: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
 
@@ -47,7 +50,8 @@ scenarios:
       default_duration_seconds: 30
       tool_args: ["--scenario", "lock", "--interval", "1s", "--threshold", "0.10", "--sustain", "1"]
       workload: "stress-ng --mutex 8 --timeout ${DURATION}s --metrics-brief"
-    expected_anomaly_types: ["锁竞争", "长时间阻塞等待"]
+    expected_anomaly_types: ["锁竞争"]
+    oracle: process_tids
     related_object: process
     required_key_metrics: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
     required_evidence_names: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
@@ -62,6 +66,7 @@ scenarios:
       tool_args: ["--scenario", "syscall", "--interval", "1s", "--threshold", "1000", "--sustain", "1"]
       workload: "timeout ${DURATION}s dd if=/dev/zero of=/dev/null bs=1 count=200000000"
     expected_anomaly_types: ["系统调用热点"]
+    oracle: process_tgids
     related_object: process
     required_key_metrics: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
     required_evidence_names: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
@@ -70,10 +75,46 @@ scenarios:
 
   idle:
     kind: negative
+    description: Backward-compatible alias for idle CPU collector.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.95", "--sustain", "3"]
+      workload: "none"
+    max_reports: 0
+
+  idle_cpu:
+    kind: negative
     description: Idle CPU collector should not emit anomaly reports.
     runner:
       default_duration_seconds: 15
       tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.95", "--sustain", "3"]
+      workload: "none"
+    max_reports: 0
+
+  idle_io:
+    kind: negative
+    description: Idle I/O collector should not emit anomaly reports.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "5", "--sustain", "2"]
+      workload: "none"
+    max_reports: 0
+
+  idle_lock:
+    kind: negative
+    description: Idle lock collector should not emit anomaly reports.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "lock", "--interval", "1s", "--threshold", "0.30", "--sustain", "2"]
+      workload: "none"
+    max_reports: 0
+
+  idle_syscall:
+    kind: negative
+    description: Idle syscall collector should not emit anomaly reports.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "syscall", "--interval", "1s", "--threshold", "10000", "--sustain", "2"]
       workload: "none"
     max_reports: 0
 

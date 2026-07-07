@@ -27,6 +27,30 @@ func TestCPUReportUsesRuntimeThreshold(t *testing.T) {
 	}
 }
 
+func TestReportTimeWindowNormalizesSingleTickSignals(t *testing.T) {
+	report := BuildSyscallReport(detector.SyscallSignal{
+		Sample: collector.SyscallSample{
+			Pid:         100,
+			Comm:        "hot",
+			Syscall:     "read",
+			CallsPerSec: 2000,
+		},
+		WindowStart: time.Unix(2, 0),
+		WindowEnd:   time.Unix(2, 0),
+	}, 1000, 100)
+	start, err := time.Parse(time.RFC3339, report.TimeWindow.Start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	end, err := time.Parse(time.RFC3339, report.TimeWindow.End)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !start.Before(end) {
+		t.Fatalf("start must be before end, got start=%s end=%s", report.TimeWindow.Start, report.TimeWindow.End)
+	}
+}
+
 func TestMemReportOmitsEmptyCulpritObject(t *testing.T) {
 	report := BuildMemReport(detector.MemSignal{
 		Snapshot: collector.MemSnapshot{
