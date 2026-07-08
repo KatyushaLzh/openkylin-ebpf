@@ -36,11 +36,12 @@ type LockSample struct {
 
 // LockCollector 加载锁竞争场景的 eBPF 程序并读取 off-CPU 阻塞数据。
 type LockCollector struct {
-	objs  lockObjects
-	links []link.Link
-	ksyms *ksym.Table
-	prev  map[uint32]lockStat
-	stale map[uint32]int
+	objs   lockObjects
+	links  []link.Link
+	ksyms  *ksym.Table
+	prev   map[uint32]lockStat
+	stale  map[uint32]int
+	target *targetTracker
 }
 
 // NewLockCollector 加载字节码、挂载 tracepoint、载入内核符号表。
@@ -49,8 +50,9 @@ func NewLockCollector(targetPID uint32) (*LockCollector, error) {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
 	c := &LockCollector{
-		prev:  make(map[uint32]lockStat),
-		stale: make(map[uint32]int),
+		prev:   make(map[uint32]lockStat),
+		stale:  make(map[uint32]int),
+		target: newTargetTracker(targetPID),
 	}
 	if err := loadLockObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
@@ -58,6 +60,10 @@ func NewLockCollector(targetPID uint32) (*LockCollector, error) {
 	if err := c.objs.TargetPid.Put(uint32(0), targetPID); err != nil {
 		c.Close()
 		return nil, fmt.Errorf("set target pid: %w", err)
+	}
+	if err := c.refreshTargetTGIDs(); err != nil {
+		c.Close()
+		return nil, err
 	}
 	sw, err := link.Tracepoint("sched", "sched_switch", c.objs.HandleSwitch, nil)
 	if err != nil {
@@ -90,6 +96,9 @@ func (c *LockCollector) Close() {
 
 // Poll 读取 lock_stats，计算自上次调用以来的差分。
 func (c *LockCollector) Poll(interval time.Duration) ([]LockSample, error) {
+	if err := c.refreshTargetTGIDs(); err != nil {
+		return nil, err
+	}
 	cur := make(map[uint32]lockStat)
 	var key uint32
 	var val lockStat
@@ -104,6 +113,12 @@ func (c *LockCollector) Poll(interval time.Duration) ([]LockSample, error) {
 	intervalNs := float64(interval.Nanoseconds())
 	var samples []LockSample
 	for tid, v := range cur {
+		if c.target.enabled() && !c.target.containsTID(tid) {
+			_ = c.objs.LockStats.Delete(tid)
+			_ = c.objs.OffcpuStart.Delete(tid)
+			delete(cur, tid)
+			continue
+		}
 		var dOff, dCount uint64
 		if p, ok := c.prev[tid]; ok {
 			dOff = v.OffcpuNs - p.OffcpuNs
@@ -132,6 +147,36 @@ func (c *LockCollector) Poll(interval time.Duration) ([]LockSample, error) {
 	}
 	c.prev = cur
 	return samples, nil
+}
+
+func (c *LockCollector) refreshTargetTGIDs() error {
+	if !c.target.enabled() {
+		return nil
+	}
+	c.target.refresh()
+	desired := make(map[uint32]struct{})
+	for _, tgid := range c.target.targetTGIDs() {
+		desired[tgid] = struct{}{}
+	}
+	var key uint32
+	var val uint8
+	it := c.objs.TargetTgids.Iterate()
+	for it.Next(&key, &val) {
+		if _, ok := desired[key]; ok {
+			continue
+		}
+		_ = c.objs.TargetTgids.Delete(key)
+	}
+	if err := it.Err(); err != nil {
+		return fmt.Errorf("iterate target_tgids: %w", err)
+	}
+	one := uint8(1)
+	for tgid := range desired {
+		if err := c.objs.TargetTgids.Put(tgid, one); err != nil {
+			return fmt.Errorf("update target_tgids: %w", err)
+		}
+	}
+	return nil
 }
 
 // ResolveStack 将阻塞栈 id 符号化为最多 max 个栈帧函数名。

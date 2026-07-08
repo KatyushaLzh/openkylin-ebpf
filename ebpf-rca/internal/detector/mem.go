@@ -56,7 +56,7 @@ func (d *MemDetector) Detect(snap collector.MemSnapshot, now time.Time) []MemSig
 
 func hasMemPressureSignal(snap collector.MemSnapshot, availPctFloor float64) bool {
 	if snap.MemTotalKB > 0 && snap.MemAvailablePct < availPctFloor {
-		return true
+		return !snap.Targeted || snap.TopRSSProc.Pid != 0 || len(snap.Procs) > 0
 	}
 	if snap.KswapdWakes > 0 {
 		return true

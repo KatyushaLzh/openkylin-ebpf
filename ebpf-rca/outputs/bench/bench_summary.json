@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-07-08T07:08:15Z",
+  "kernel": "6.6.0-22-generic",
+  "arch": "x86_64",
+  "summary": [
+    {
+      "scenario": "cpu",
+      "baseline_avg_sec": 60.013333333333335,
+      "with_tool_avg_sec": 60.013333333333335,
+      "slowdown_avg_percent": 0.0,
+      "tool_avg_cpu_percent": 0.03766666666666667,
+      "tool_max_cpu_percent": 0.1,
+      "tool_avg_rss_mb": 8.807333333333332,
+      "tool_max_rss_mb": 10.656,
+      "json_ok_runs": 3,
+      "tool_runs": 3,
+      "evidence_min_len": 3
+    },
+    {
+      "scenario": "io",
+      "baseline_avg_sec": 61.815666666666665,
+      "with_tool_avg_sec": 61.93,
+      "slowdown_avg_percent": 0.18300000000000002,
+      "tool_avg_cpu_percent": 0.0,
+      "tool_max_cpu_percent": 0.0,
+      "tool_avg_rss_mb": 5.597666666666667,
+      "tool_max_rss_mb": 5.66,
+      "json_ok_runs": 3,
+      "tool_runs": 3,
+      "evidence_min_len": 6
+    },
+    {
+      "scenario": "lock",
+      "baseline_avg_sec": 60.015,
+      "with_tool_avg_sec": 60.019666666666666,
+      "slowdown_avg_percent": 0.007666666666666666,
+      "tool_avg_cpu_percent": 0.6133333333333333,
+      "tool_max_cpu_percent": 3.6,
+      "tool_avg_rss_mb": 43.034666666666666,
+      "tool_max_rss_mb": 51.371,
+      "json_ok_runs": 3,
+      "tool_runs": 3,
+      "evidence_min_len": 13
+    },
+    {
+      "scenario": "mem",
+      "baseline_avg_sec": 60.134,
+      "with_tool_avg_sec": 60.138666666666666,
+      "slowdown_avg_percent": 0.008,
+      "tool_avg_cpu_percent": 1.1426666666666667,
+      "tool_max_cpu_percent": 1.6,
+      "tool_avg_rss_mb": 9.800333333333333,
+      "tool_max_rss_mb": 10.852,
+      "json_ok_runs": 3,
+      "tool_runs": 3,
+      "evidence_min_len": 10
+    },
+    {
+      "scenario": "syscall",
+      "baseline_avg_sec": 60.004333333333335,
+      "with_tool_avg_sec": 60.004333333333335,
+      "slowdown_avg_percent": 0.0,
+      "tool_avg_cpu_percent": 0.433,
+      "tool_max_cpu_percent": 0.6,
+      "tool_avg_rss_mb": 10.093333333333334,
+      "tool_max_rss_mb": 10.785,
+      "json_ok_runs": 3,
+      "tool_runs": 3,
+      "evidence_min_len": 7
+    }
+  ],
+  "raw_csv": "outputs/bench/bench_summary.csv"
+}

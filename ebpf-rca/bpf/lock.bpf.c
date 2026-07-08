@@ -63,6 +63,14 @@ struct {
 	__type(value, __u32);
 } target_pid SEC(".maps");
 
+// target root 的 descendant tgid 集合；用户态周期性刷新。
+struct {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 1024);
+	__type(key, __u32);
+	__type(value, __u8);
+} target_tgids SEC(".maps");
+
 struct sched_switch_tp {
 	__u64 pad;
 	char  prev_comm[TASK_COMM_LEN];
@@ -97,7 +105,9 @@ static __always_inline bool allowed_current_tgid(void)
 	__u32 key = 0;
 	__u32 *target = bpf_map_lookup_elem(&target_pid, &key);
 	__u32 tgid = bpf_get_current_pid_tgid() >> 32;
-	return !target || *target == 0 || *target == tgid;
+	if (!target || *target == 0 || *target == tgid)
+		return true;
+	return bpf_map_lookup_elem(&target_tgids, &tgid) != 0;
 }
 
 static __always_inline __u32 log2_u64(__u64 v)

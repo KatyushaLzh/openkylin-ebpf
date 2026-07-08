@@ -1,0 +1,69 @@
+{
+  "scenario": "cpu",
+  "kind": "positive",
+  "passed": true,
+  "report_count": 6,
+  "matched_anomaly_type": "CPU异常占用",
+  "matched_object": {
+    "pid": 119767,
+    "tid": 119767,
+    "comm": "stress-ng-cpu"
+  },
+  "matched_reports": [
+    {
+      "index": 1,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119767,
+        "tid": 119767,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 2,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119767,
+        "tid": 119767,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 3,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119766,
+        "tid": 119766,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 4,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119767,
+        "tid": 119767,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 5,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119766,
+        "tid": 119766,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 6,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119767,
+        "tid": 119767,
+        "comm": "stress-ng-cpu"
+      }
+    }
+  ],
+  "truth_summary": "root_pid=119759 tgids=[119759,119765,119766,119767] tids=[119759,119765,119766,119767] comms=[bash,stress-ng,stress-ng-cpu]"
+}

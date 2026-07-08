@@ -1,0 +1,60 @@
+{
+  "scenario": "cpu",
+  "kind": "positive",
+  "passed": true,
+  "report_count": 5,
+  "matched_anomaly_type": "CPU异常占用",
+  "matched_object": {
+    "pid": 119914,
+    "tid": 119914,
+    "comm": "stress-ng-cpu"
+  },
+  "matched_reports": [
+    {
+      "index": 1,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119914,
+        "tid": 119914,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 2,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119914,
+        "tid": 119914,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 3,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119913,
+        "tid": 119913,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 4,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119913,
+        "tid": 119913,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 5,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 119914,
+        "tid": 119914,
+        "comm": "stress-ng-cpu"
+      }
+    }
+  ],
+  "truth_summary": "root_pid=119906 tgids=[119906,119912,119913,119914] tids=[119906,119912,119913,119914] comms=[bash,stress-ng,stress-ng-cpu]"
+}

@@ -1,0 +1,36 @@
+name: basic-check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  basic-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ebpf-rca
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: ebpf-rca/go.sum
+
+      - name: Script syntax
+        run: bash -n scripts/env_check.sh scripts/run_all_repro.sh scripts/bench_overhead.sh
+
+      - name: Python syntax
+        run: python3 -m py_compile scripts/validate_report.py
+
+      - name: Schema syntax
+        run: python3 -m json.tool schemas/anomaly_report.schema.json >/dev/null
+
+      - name: Go tests
+        run: go test ./...
+
+      - name: Docs check
+        run: make docs-check

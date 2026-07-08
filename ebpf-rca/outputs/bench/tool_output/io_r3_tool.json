@@ -1,0 +1,180 @@
+{
+  "anomaly_type": "I/O延迟抖动",
+  "related_object": {
+    "device": "8:0 sda"
+  },
+  "key_metrics": {
+    "avg_lat_ms": 0.2,
+    "iops": 106,
+    "max_lat_ms": 1.05,
+    "p99_lat_ms": 0.52,
+    "queue_depth": 2,
+    "throughput_mbps": 6.88
+  },
+  "time_window": {
+    "start": "2026-07-08T06:47:44Z",
+    "end": "2026-07-08T06:47:45Z"
+  },
+  "suspected_root_cause": "I/O 时延抖动，疑似热点设备访问集中或页缓存失效导致回源磁盘",
+  "confidence": 0.78,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "p99_lat_ms",
+      "value": 0.52,
+      "threshold": 0.5,
+      "desc": "请求完成时延 P99"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_ms",
+      "value": 0.2,
+      "desc": "平均完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_ms",
+      "value": 1.05,
+      "desc": "最大完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "iops",
+      "value": 106,
+      "desc": "每秒完成请求数"
+    },
+    {
+      "type": "metric",
+      "name": "throughput_mbps",
+      "value": 6.88,
+      "desc": "吞吐(MB/s)"
+    },
+    {
+      "type": "metric",
+      "name": "queue_depth",
+      "value": 2,
+      "desc": "当前在途请求数(队列深度)"
+    }
+  ],
+  "suggestion": "排查热点文件/设备访问模式，增大缓存命中或顺序化访问；必要时分散负载到多设备"
+}
+{
+  "anomaly_type": "I/O延迟抖动",
+  "related_object": {
+    "device": "8:0 sda"
+  },
+  "key_metrics": {
+    "avg_lat_ms": 0.93,
+    "iops": 2113,
+    "max_lat_ms": 16.78,
+    "p99_lat_ms": 8.39,
+    "queue_depth": 7,
+    "throughput_mbps": 545.75
+  },
+  "time_window": {
+    "start": "2026-07-08T06:47:46Z",
+    "end": "2026-07-08T06:47:47Z"
+  },
+  "suspected_root_cause": "I/O 时延抖动，疑似热点设备访问集中或页缓存失效导致回源磁盘",
+  "confidence": 0.78,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "p99_lat_ms",
+      "value": 8.39,
+      "threshold": 0.5,
+      "desc": "请求完成时延 P99"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_ms",
+      "value": 0.93,
+      "desc": "平均完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_ms",
+      "value": 16.78,
+      "desc": "最大完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "iops",
+      "value": 2113,
+      "desc": "每秒完成请求数"
+    },
+    {
+      "type": "metric",
+      "name": "throughput_mbps",
+      "value": 545.75,
+      "desc": "吞吐(MB/s)"
+    },
+    {
+      "type": "metric",
+      "name": "queue_depth",
+      "value": 7,
+      "desc": "当前在途请求数(队列深度)"
+    }
+  ],
+  "suggestion": "排查热点文件/设备访问模式，增大缓存命中或顺序化访问；必要时分散负载到多设备"
+}
+{
+  "anomaly_type": "I/O延迟抖动",
+  "related_object": {
+    "device": "8:0 sda"
+  },
+  "key_metrics": {
+    "avg_lat_ms": 0.2,
+    "iops": 96,
+    "max_lat_ms": 1.05,
+    "p99_lat_ms": 1.05,
+    "queue_depth": 7792,
+    "throughput_mbps": 5.65
+  },
+  "time_window": {
+    "start": "2026-07-08T06:48:49Z",
+    "end": "2026-07-08T06:48:50Z"
+  },
+  "suspected_root_cause": "随机读写压力导致设备队列拥堵（队列深度 7792，队列过深）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "p99_lat_ms",
+      "value": 1.05,
+      "threshold": 0.5,
+      "desc": "请求完成时延 P99"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_ms",
+      "value": 0.2,
+      "desc": "平均完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_ms",
+      "value": 1.05,
+      "desc": "最大完成时延"
+    },
+    {
+      "type": "metric",
+      "name": "iops",
+      "value": 96,
+      "desc": "每秒完成请求数"
+    },
+    {
+      "type": "metric",
+      "name": "throughput_mbps",
+      "value": 5.65,
+      "desc": "吞吐(MB/s)"
+    },
+    {
+      "type": "metric",
+      "name": "queue_depth",
+      "value": 7792,
+      "desc": "当前在途请求数(队列深度)"
+    }
+  ],
+  "suggestion": "降低并发/队列深度(iodepth)，或评估更高 IOPS 的存储；排查是否随机小块写密集"
+}

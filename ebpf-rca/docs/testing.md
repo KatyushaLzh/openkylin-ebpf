@@ -63,9 +63,28 @@ make bench            # 全部场景，结果写入 bench.md
 判读：负载变慢% 越小越好；工具 CPU%/RSS 为 ebpf-rca 自身开销。
 
 > 说明：syscall 场景因 `raw_syscalls` 触发极频繁，开销高于其它场景，属预期；
-> 生产可经 `--target-pid` 过滤只观测目标进程以降开销。
+> mem/lock/syscall 可经 `--target-pid` 过滤只观测目标进程树，以降低噪声和开销。
 
-## 4. 自动化本地 E2E
+## 4. 多轮准确率评测
+
+```bash
+make accuracy-full
+```
+
+该目标复用 `scripts/test_local.sh`，默认对 CPU/I/O/mem/lock/syscall 五类正例和
+`idle_cpu/idle_io/idle_lock/idle_syscall` 四类负例各跑 3 轮。输出写入
+`outputs/accuracy/`，其中 `accuracy.md` 是报告摘要，`accuracy_summary.csv` 是场景级汇总，
+两个 SVG 图表可直接用于技术报告。
+
+2026-07-08 实测结果：
+
+- 27/27 轮生成有效 `check.json`；总体诊断准确率 100.0%，端到端通过率 100.0%。
+- CPU、I/O、mem、lock、syscall 正例全部命中 workload oracle。
+- 四类 idle 负例全部无告警，误报率 0%。
+- mem / lock / syscall 复现路径均使用 `--target-pid` 绑定 workload 进程树，避免桌面后台进程污染根因对象。
+- 历史 77.8% 版本中的 mem/lock 归因失败已通过进程树过滤修复；最新口径以 `outputs/accuracy/accuracy.md` 为准。
+
+## 5. 自动化本地 E2E
 
 ```bash
 bash scripts/test_local.sh smoke --workload deterministic  # CPU + syscall 快速链路
@@ -88,7 +107,7 @@ make docs-check                                            # CLI 参数与 READM
 正例中未命中 workload 的额外报告会进入 `warnings/extra_reports`，默认不让测试失败，但用于暴露误报。
 负例已拆成 `idle_cpu / idle_io / idle_lock / idle_syscall`，分别约束各探针空闲窗口下的误报。
 
-## 5. 实机一键复跑
+## 6. 实机一键复跑
 
 本机完整验证可直接运行：
 

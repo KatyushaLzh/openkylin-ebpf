@@ -1,0 +1,1768 @@
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 3550,
+    "comm": "kwin_x11"
+  },
+  "key_metrics": {
+    "avg_lat_us": 531.16,
+    "calls_per_sec": 3772,
+    "syscall": "futex",
+    "syscall_nr": 202,
+    "target_pid": 0,
+    "total_ms_per_sec": 2003.52
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:19Z",
+    "end": "2026-07-08T05:51:20Z"
+  },
+  "suspected_root_cause": "等待型系统调用高频热点：futex 达 3772 次/秒，疑似短 timeout 轮询或唤醒风暴",
+  "confidence": 0.82,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "futex",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 202,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 3772,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 531.16,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 33554.43,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 2003.52,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "检查 futex 调用的 timeout、事件源与唤醒条件；用阻塞等待或批处理降低空轮询频率"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 1946,
+    "comm": "Xorg"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.77,
+    "calls_per_sec": 1736,
+    "syscall": "recvmsg",
+    "syscall_nr": 47,
+    "target_pid": 0,
+    "total_ms_per_sec": 1.34
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:19Z",
+    "end": "2026-07-08T05:51:20Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：recvmsg 达 1736 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvmsg",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 47,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1736,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.77,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 32.77,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 1.34,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 recvmsg 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 1946,
+    "comm": "Xorg"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5.25,
+    "calls_per_sec": 2386,
+    "syscall": "writev",
+    "syscall_nr": 20,
+    "target_pid": 0,
+    "total_ms_per_sec": 12.54
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:19Z",
+    "end": "2026-07-08T05:51:20Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：writev 达 2386 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "writev",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 20,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 2386,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5.25,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 4194.3,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 12.54,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 writev 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 1946,
+    "comm": "Xorg"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.33,
+    "calls_per_sec": 1260,
+    "syscall": "syscall_38",
+    "syscall_nr": 38,
+    "target_pid": 0,
+    "total_ms_per_sec": 0.41
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:19Z",
+    "end": "2026-07-08T05:51:20Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：syscall_38 达 1260 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "syscall_38",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 38,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1260,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.33,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2.05,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 0.41,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 syscall_38 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56250,
+    "comm": "dd"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.21,
+    "calls_per_sec": 23672,
+    "syscall": "read",
+    "syscall_nr": 0,
+    "target_pid": 0,
+    "total_ms_per_sec": 4.96
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:21Z",
+    "end": "2026-07-08T05:51:22Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：read 达 23672 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "read",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 0,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 23672,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.21,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 524.29,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 4.96,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 read 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56250,
+    "comm": "dd"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.23,
+    "calls_per_sec": 23668,
+    "syscall": "write",
+    "syscall_nr": 1,
+    "target_pid": 0,
+    "total_ms_per_sec": 5.37
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:21Z",
+    "end": "2026-07-08T05:51:22Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：write 达 23668 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "write",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 1,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 23668,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.23,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 1048.58,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5.37,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 write 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000349.85,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.35
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:28Z",
+    "end": "2026-07-08T05:51:29Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000350µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000349.85,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.35,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000165.65,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.17
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:33Z",
+    "end": "2026-07-08T05:51:34Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000166µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000165.65,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.17,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000384.66,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.38
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:38Z",
+    "end": "2026-07-08T05:51:39Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000385µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000384.66,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.38,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000241.44,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.24
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:43Z",
+    "end": "2026-07-08T05:51:44Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000241µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000241.44,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.24,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 3550,
+    "comm": "kwin_x11"
+  },
+  "key_metrics": {
+    "avg_lat_us": 1498.03,
+    "calls_per_sec": 1064,
+    "syscall": "poll",
+    "syscall_nr": 7,
+    "target_pid": 0,
+    "total_ms_per_sec": 1593.9
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:46Z",
+    "end": "2026-07-08T05:51:47Z"
+  },
+  "suspected_root_cause": "等待型系统调用高频热点：poll 达 1064 次/秒，疑似短 timeout 轮询或唤醒风暴",
+  "confidence": 0.82,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "poll",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 7,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1064,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 1498.03,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 16777.22,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 1593.9,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "检查 poll 调用的 timeout、事件源与唤醒条件；用阻塞等待或批处理降低空轮询频率"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 53026,
+    "comm": "sqlx-sqlite-wor"
+  },
+  "key_metrics": {
+    "avg_lat_us": 1.26,
+    "calls_per_sec": 2332,
+    "syscall": "pread64",
+    "syscall_nr": 17,
+    "target_pid": 0,
+    "total_ms_per_sec": 2.95
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:46Z",
+    "end": "2026-07-08T05:51:47Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：pread64 达 2332 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "pread64",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 17,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 2332,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 1.26,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 8.19,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 2.95,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 pread64 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000205.69,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.21
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:48Z",
+    "end": "2026-07-08T05:51:49Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000206µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000205.69,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.21,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000279.67,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.28
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:53Z",
+    "end": "2026-07-08T05:51:54Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000280µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000279.67,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.28,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000273.18,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.27
+  },
+  "time_window": {
+    "start": "2026-07-08T05:51:58Z",
+    "end": "2026-07-08T05:51:59Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000273µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000273.18,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.27,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000338.38,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.34
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:03Z",
+    "end": "2026-07-08T05:52:04Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000338µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000338.38,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.34,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56336,
+    "comm": "kylin-software-"
+  },
+  "key_metrics": {
+    "avg_lat_us": 1.55,
+    "calls_per_sec": 1556,
+    "syscall": "newfstatat",
+    "syscall_nr": 262,
+    "target_pid": 0,
+    "total_ms_per_sec": 2.41
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:05Z",
+    "end": "2026-07-08T05:52:06Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：newfstatat 达 1556 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "newfstatat",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 262,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1556,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 1.55,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 131.07,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 2.41,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 newfstatat 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56338,
+    "comm": "ps"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.41,
+    "calls_per_sec": 1409,
+    "syscall": "close",
+    "syscall_nr": 3,
+    "target_pid": 0,
+    "total_ms_per_sec": 0.58
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:05Z",
+    "end": "2026-07-08T05:52:06Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：close 达 1409 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "close",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 3,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1409,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.41,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 65.54,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 0.58,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 close 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56338,
+    "comm": "ps"
+  },
+  "key_metrics": {
+    "avg_lat_us": 3.45,
+    "calls_per_sec": 2100,
+    "syscall": "openat",
+    "syscall_nr": 257,
+    "target_pid": 0,
+    "total_ms_per_sec": 7.25
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:05Z",
+    "end": "2026-07-08T05:52:06Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：openat 达 2100 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "openat",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 257,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 2100,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 3.45,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 1048.58,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 7.25,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 openat 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56338,
+    "comm": "ps"
+  },
+  "key_metrics": {
+    "avg_lat_us": 2.63,
+    "calls_per_sec": 1760,
+    "syscall": "read",
+    "syscall_nr": 0,
+    "target_pid": 0,
+    "total_ms_per_sec": 4.63
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:05Z",
+    "end": "2026-07-08T05:52:06Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：read 达 1760 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "read",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 0,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1760,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 2.63,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 1048.58,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 4.63,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 read 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000310.26,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.31
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:08Z",
+    "end": "2026-07-08T05:52:09Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000310µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000310.26,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.31,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 3561,
+    "comm": "ukui-panel"
+  },
+  "key_metrics": {
+    "avg_lat_us": 56.01,
+    "calls_per_sec": 1018,
+    "syscall": "futex",
+    "syscall_nr": 202,
+    "target_pid": 0,
+    "total_ms_per_sec": 57.02
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:08Z",
+    "end": "2026-07-08T05:52:09Z"
+  },
+  "suspected_root_cause": "等待型系统调用高频热点：futex 达 1018 次/秒，疑似短 timeout 轮询或唤醒风暴",
+  "confidence": 0.82,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "futex",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 202,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1018,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 56.01,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 4194.3,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 57.02,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "检查 futex 调用的 timeout、事件源与唤醒条件；用阻塞等待或批处理降低空轮询频率"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000800.11,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.8
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:13Z",
+    "end": "2026-07-08T05:52:14Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000800µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000800.11,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.8,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000189.36,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.19
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:18Z",
+    "end": "2026-07-08T05:52:19Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000189µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000189.36,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.19,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 56249,
+    "comm": "timeout"
+  },
+  "key_metrics": {
+    "avg_lat_us": 30000357.74,
+    "calls_per_sec": 2,
+    "syscall": "syscall_130",
+    "syscall_nr": 130,
+    "target_pid": 0,
+    "total_ms_per_sec": 60000.72
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:21Z",
+    "end": "2026-07-08T05:52:22Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：syscall_130 单次平均 30000358µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "syscall_130",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 130,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 2,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 30000357.74,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 60000.72,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 syscall_130 的阻塞来源，合并/异步化该调用，降低同步等待"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 29382,
+    "comm": "cpis-engine-ser"
+  },
+  "key_metrics": {
+    "avg_lat_us": 5000196.98,
+    "calls_per_sec": 1,
+    "syscall": "recvfrom",
+    "syscall_nr": 45,
+    "target_pid": 0,
+    "total_ms_per_sec": 5000.2
+  },
+  "time_window": {
+    "start": "2026-07-08T05:52:23Z",
+    "end": "2026-07-08T05:52:24Z"
+  },
+  "suspected_root_cause": "高耗时系统调用热点：recvfrom 单次平均 5000197µs，疑似阻塞型调用(如 fsync/慢 I/O/锁等待)",
+  "confidence": 0.88,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "recvfrom",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 45,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 1,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 5000196.98,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 2147483.65,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 5000.2,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 0,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "排查 recvfrom 的阻塞来源，合并/异步化该调用，降低同步等待"
+}

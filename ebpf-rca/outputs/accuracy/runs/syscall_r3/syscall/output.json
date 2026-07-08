@@ -1,0 +1,136 @@
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 121549,
+    "comm": "dd"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.14,
+    "calls_per_sec": 728256,
+    "syscall": "write",
+    "syscall_nr": 1,
+    "target_pid": 121549,
+    "total_ms_per_sec": 104.99
+  },
+  "time_window": {
+    "start": "2026-07-08T09:13:39Z",
+    "end": "2026-07-08T09:13:40Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：write 达 728256 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "write",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 1,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 728256,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.14,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 1048.58,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 104.99,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 121549,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 write 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}
+{
+  "anomaly_type": "系统调用热点",
+  "related_object": {
+    "pid": 121549,
+    "comm": "dd"
+  },
+  "key_metrics": {
+    "avg_lat_us": 0.15,
+    "calls_per_sec": 728268,
+    "syscall": "read",
+    "syscall_nr": 0,
+    "target_pid": 121549,
+    "total_ms_per_sec": 109.45
+  },
+  "time_window": {
+    "start": "2026-07-08T09:13:39Z",
+    "end": "2026-07-08T09:13:40Z"
+  },
+  "suspected_root_cause": "高频系统调用热点：read 达 728268 次/秒，疑似忙轮询或调用未做批处理",
+  "confidence": 0.85,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "syscall",
+      "value": "read",
+      "desc": "热点系统调用名"
+    },
+    {
+      "type": "metric",
+      "name": "syscall_nr",
+      "value": 0,
+      "desc": "热点系统调用号"
+    },
+    {
+      "type": "metric",
+      "name": "calls_per_sec",
+      "value": 728268,
+      "threshold": 1000,
+      "desc": "每秒调用次数"
+    },
+    {
+      "type": "metric",
+      "name": "avg_lat_us",
+      "value": 0.15,
+      "desc": "单次平均耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "max_lat_us",
+      "value": 1048.58,
+      "desc": "单次最大耗时(微秒)"
+    },
+    {
+      "type": "metric",
+      "name": "total_ms_per_sec",
+      "value": 109.45,
+      "threshold": 300,
+      "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
+    },
+    {
+      "type": "metric",
+      "name": "target_pid",
+      "value": 121549,
+      "desc": "用户配置的进程过滤目标；0 表示全局观测"
+    }
+  ],
+  "suggestion": "减少 read 调用频次：改用事件通知(epoll)/批量读写/缓存，避免忙轮询"
+}

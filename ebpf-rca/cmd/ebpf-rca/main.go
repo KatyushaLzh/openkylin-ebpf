@@ -75,7 +75,7 @@ func main() {
 	lockIncludeBlocking := flag.Bool("lock-include-blocking", false, "lock 场景保留未命中锁/同步符号的普通长阻塞报告")
 	lockTopN := flag.Int("lock-topn", 5, "lock 场景每个窗口最多输出的 Top-N 阻塞线程")
 	syscallRateThreshold := flag.Float64("syscall-rate-threshold", defaultThresholds.SyscallCallsPerSec, "系统调用频率阈值(次/秒)")
-	targetPID := flag.Uint("target-pid", 0, "lock/syscall 场景：只观测指定进程 pid/tgid（0=全局）")
+	targetPID := flag.Uint("target-pid", 0, "mem/lock/syscall 场景：只观测指定进程树 root pid（0=全局）")
 	sustain := flag.Int("sustain", 3, "连续超过阈值多少个窗口才触发")
 	duration := flag.Duration("duration", 0, "总运行时长（0 = 直到 Ctrl-C）")
 	format := flag.String("format", "json", "流式输出格式：json|yaml|md")
@@ -292,14 +292,14 @@ func runIO(ctx context.Context, cfg config, h handler) error {
 }
 
 func runMem(ctx context.Context, cfg config, h handler) error {
-	col, err := collector.NewMemCollector()
+	col, err := collector.NewMemCollector(cfg.targetPID)
 	if err != nil {
 		return err
 	}
 	defer col.Close()
 	det := detector.NewMemDetector(cfg.threshold.MemAvailFloorPct, cfg.sustain)
-	fmt.Fprintf(os.Stderr, "[ebpf-rca] 场景=mem interval=%s avail_floor=%.0f%% sustain=%d\n",
-		cfg.interval, cfg.threshold.MemAvailFloorPct, cfg.sustain)
+	fmt.Fprintf(os.Stderr, "[ebpf-rca] 场景=mem interval=%s avail_floor=%.0f%% target_pid=%d sustain=%d\n",
+		cfg.interval, cfg.threshold.MemAvailFloorPct, cfg.targetPID, cfg.sustain)
 	_, _ = col.Poll(cfg.interval)
 	runLoop(ctx, cfg, func(now time.Time) {
 		snap, err := col.Poll(cfg.interval)
@@ -404,7 +404,7 @@ func runAll(ctx context.Context, cfg config, h handler) error {
 		})
 	}
 
-	if col, err := collector.NewMemCollector(); err != nil {
+	if col, err := collector.NewMemCollector(cfg.targetPID); err != nil {
 		warn("mem", err)
 	} else {
 		closers = append(closers, col.Close)

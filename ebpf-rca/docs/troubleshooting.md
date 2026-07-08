@@ -185,12 +185,12 @@ go version                                 # >= 1.22
 
 ### 3.8 ⑤ syscall：开销偏高
 - 说明：`raw_syscalls` 触发极频繁，是预期内最高开销场景。演示/评测可只单独跑、缩短时长；
-  生产可加 `--target-pid <pid>` 只观测目标进程。
+  生产可加 `--target-pid <pid>` 只观测目标进程树。
 
 ### 3.9 ⑤ syscall：正常等待被报成热点
 - 说明：`epoll_wait/poll/ppoll/select/futex/nanosleep` 等等待型 syscall 不再因为 wall time 长触发；
   只有 calls/s 超过阈值才会报告，含义是短 timeout 轮询或唤醒风暴。
-- 若仍看到背景噪声，优先用 `--target-pid <pid>` 限定 workload；工具默认还会过滤 `comm=ebpf-rca` 自身。
+- 若仍看到背景噪声，优先用 `--target-pid <pid>` 限定 workload 进程树；工具默认还会过滤 `comm=ebpf-rca` 自身。
 
 ### 3.10 误报 / 漏报调参
 - 误报多：增大当前场景阈值或 `--sustain`（连续窗口数）。

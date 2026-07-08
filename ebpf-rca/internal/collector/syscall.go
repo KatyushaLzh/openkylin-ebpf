@@ -44,6 +44,7 @@ type SyscallCollector struct {
 	prev      map[scKey]scStat
 	stale     map[scKey]int
 	targetPID uint32
+	target    *targetTracker
 }
 
 // NewSyscallCollector 加载字节码、挂载 raw_syscalls tracepoint。
@@ -55,6 +56,7 @@ func NewSyscallCollector(targetPID uint32) (*SyscallCollector, error) {
 		prev:      make(map[scKey]scStat),
 		stale:     make(map[scKey]int),
 		targetPID: targetPID,
+		target:    newTargetTracker(targetPID),
 	}
 	if err := loadSyscallObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
@@ -62,6 +64,10 @@ func NewSyscallCollector(targetPID uint32) (*SyscallCollector, error) {
 	if err := c.objs.TargetPid.Put(uint32(0), targetPID); err != nil {
 		c.Close()
 		return nil, fmt.Errorf("set target pid: %w", err)
+	}
+	if err := c.refreshTargetTGIDs(); err != nil {
+		c.Close()
+		return nil, err
 	}
 	en, err := link.Tracepoint("raw_syscalls", "sys_enter", c.objs.HandleEnter, nil)
 	if err != nil {
@@ -89,6 +95,9 @@ func (c *SyscallCollector) Close() {
 
 // Poll 读取 syscall_stats，计算自上次调用以来的差分。
 func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error) {
+	if err := c.refreshTargetTGIDs(); err != nil {
+		return nil, err
+	}
 	cur := make(map[scKey]scStat)
 	var key scKey
 	var val scStat
@@ -103,6 +112,11 @@ func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error)
 	secs := interval.Seconds()
 	var samples []SyscallSample
 	for k, v := range cur {
+		if c.target.enabled() && !c.target.containsTGID(k.Pid) {
+			_ = c.objs.SyscallStats.Delete(k)
+			delete(cur, k)
+			continue
+		}
 		p := c.prev[k]
 		dCount := v.Count - p.Count
 		dTotal := v.TotalNs - p.TotalNs
@@ -139,4 +153,34 @@ func (c *SyscallCollector) Poll(interval time.Duration) ([]SyscallSample, error)
 	}
 	c.prev = cur
 	return samples, nil
+}
+
+func (c *SyscallCollector) refreshTargetTGIDs() error {
+	if !c.target.enabled() {
+		return nil
+	}
+	c.target.refresh()
+	desired := make(map[uint32]struct{})
+	for _, tgid := range c.target.targetTGIDs() {
+		desired[tgid] = struct{}{}
+	}
+	var key uint32
+	var val uint8
+	it := c.objs.TargetTgids.Iterate()
+	for it.Next(&key, &val) {
+		if _, ok := desired[key]; ok {
+			continue
+		}
+		_ = c.objs.TargetTgids.Delete(key)
+	}
+	if err := it.Err(); err != nil {
+		return fmt.Errorf("iterate target_tgids: %w", err)
+	}
+	one := uint8(1)
+	for tgid := range desired {
+		if err := c.objs.TargetTgids.Put(tgid, one); err != nil {
+			return fmt.Errorf("update target_tgids: %w", err)
+		}
+	}
+	return nil
 }

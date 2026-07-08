@@ -1,0 +1,1 @@
+[ebpf-rca] 场景=syscall interval=1s calls/s_floor=10000 target_pid=0 sustain=2

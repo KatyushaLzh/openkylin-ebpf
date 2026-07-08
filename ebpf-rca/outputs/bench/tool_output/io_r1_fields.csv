@@ -1,0 +1,10 @@
+field,value
+json_parse_ok,true
+json_error,
+missing_required,
+evidence_len,6
+p99_latency,0.52
+avg_latency,0.12
+throughput,1.6
+iops,171.0
+confidence,0.78

@@ -1,5 +1,8 @@
 # Local build/dependency caches
 .build_deps/
+.go-cache/
+__pycache__/
+*.pyc
 
 # Local-only project notes/config
 learning.md

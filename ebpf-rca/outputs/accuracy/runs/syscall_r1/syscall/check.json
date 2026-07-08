@@ -1,0 +1,30 @@
+{
+  "scenario": "syscall",
+  "kind": "positive",
+  "passed": true,
+  "report_count": 2,
+  "matched_anomaly_type": "系统调用热点",
+  "matched_object": {
+    "pid": 121321,
+    "comm": "dd"
+  },
+  "matched_reports": [
+    {
+      "index": 1,
+      "anomaly_type": "系统调用热点",
+      "object": {
+        "pid": 121321,
+        "comm": "dd"
+      }
+    },
+    {
+      "index": 2,
+      "anomaly_type": "系统调用热点",
+      "object": {
+        "pid": 121321,
+        "comm": "dd"
+      }
+    }
+  ],
+  "truth_summary": "root_pid=121321 tgids=[121321] tids=[121321] comms=[dd]"
+}

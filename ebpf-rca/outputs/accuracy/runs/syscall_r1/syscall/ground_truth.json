@@ -1,0 +1,20 @@
+{
+  "scenario": "syscall",
+  "root_pid": 121321,
+  "pgid": 119440,
+  "session": 119440,
+  "sample_start": "2026-07-08T09:12:29Z",
+  "sample_end": "2026-07-08T09:12:58Z",
+  "allowed_tgids": [
+    121321
+  ],
+  "allowed_tids": [
+    121321
+  ],
+  "allowed_comms": [
+    "dd"
+  ],
+  "pid_start_time": {
+    "121321": 2571056
+  }
+}

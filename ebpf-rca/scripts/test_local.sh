@@ -509,6 +509,30 @@ run_json_scenario() {
 		tool_pid=$!
 		track_pid "$tool_pid"
 		set -e
+	elif [ "$sc" = "mem" ] || [ "$sc" = "lock" ]; then
+		log "starting workload for $sc"
+		set +e
+		run_workload "$sc" "$seconds" "$workload_mode" >"$workload_log" 2>&1 &
+		workload_pid=$!
+		track_pid "$workload_pid"
+		set -e
+
+		log "recording ground truth for $sc root_pid=$workload_pid"
+		local truth_args=(--write-truth --watch --watch-timeout "$((seconds + 5))s" --scenario "$sc" --root-pid "$workload_pid" --truth "$truth")
+		set +e
+		"$CHECKER" "${truth_args[@]}" >"$truth_log" 2>&1 &
+		truth_pid=$!
+		track_pid "$truth_pid"
+		set -e
+
+		set_tool_args "$sc" "$seconds"
+		TOOL_ARGS+=(--target-pid "$workload_pid")
+		log "starting ebpf-rca: ${TOOL_ARGS[*]}"
+		set +e
+		run_ebpf "${TOOL_ARGS[@]}" >"$json" 2>"$stderr" &
+		tool_pid=$!
+		track_pid "$tool_pid"
+		set -e
 	elif [ "$sc" = "syscall" ]; then
 		log "starting workload for $sc"
 		start_syscall_workload "$seconds" "$workload_mode" "$workload_log"

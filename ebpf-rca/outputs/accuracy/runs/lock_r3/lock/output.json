@@ -1,0 +1,5665 @@
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 23640,
+    "last_waker_tid": 121206,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 1.01,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:54Z",
+    "end": "2026-07-08T09:11:55Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1.01,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 23640,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121206,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121206；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 20139,
+    "last_waker_tid": 121201,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 1,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:54Z",
+    "end": "2026-07-08T09:11:55Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 20139,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121201,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121201；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121219,
+    "tid": 121219,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19207,
+    "last_waker_tid": 121201,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 1,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:54Z",
+    "end": "2026-07-08T09:11:55Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19207,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121201,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121201；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19550,
+    "last_waker_tid": 121210,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 1,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:54Z",
+    "end": "2026-07-08T09:11:55Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19550,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121210,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121210；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 18500,
+    "last_waker_tid": 121201,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.99,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:54Z",
+    "end": "2026-07-08T09:11:55Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.99,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 18500,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121201,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121201；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 13142,
+    "last_waker_tid": 121206,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:55Z",
+    "end": "2026-07-08T09:11:56Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 13142,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121206,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121206；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15025,
+    "last_waker_tid": 121201,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:55Z",
+    "end": "2026-07-08T09:11:56Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15025,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121201,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121201；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121219,
+    "tid": 121219,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 12926,
+    "last_waker_tid": 121216,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.96,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:56Z",
+    "end": "2026-07-08T09:11:57Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.96,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 12926,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121216,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121216；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16994,
+    "last_waker_tid": 121216,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:56Z",
+    "end": "2026-07-08T09:11:57Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16994,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121216,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121216；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17329,
+    "last_waker_tid": 121217,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:57Z",
+    "end": "2026-07-08T09:11:58Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17329,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121217,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121217；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16011,
+    "last_waker_tid": 121217,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.91,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:57Z",
+    "end": "2026-07-08T09:11:58Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.91,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16011,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121217,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121217；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16712,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:58Z",
+    "end": "2026-07-08T09:11:59Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16712,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17192,
+    "last_waker_tid": 121208,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:58Z",
+    "end": "2026-07-08T09:11:59Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17192,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121208,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121208；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 18816,
+    "last_waker_tid": 121209,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:11:59Z",
+    "end": "2026-07-08T09:12:00Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 18816,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121209,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121209；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 13984,
+    "last_waker_tid": 121208,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:00Z",
+    "end": "2026-07-08T09:12:01Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 13984,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121208,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121208；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 14345,
+    "last_waker_tid": 121208,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.96,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:00Z",
+    "end": "2026-07-08T09:12:01Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.96,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 14345,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121208,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121208；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 14150,
+    "last_waker_tid": 121206,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:01Z",
+    "end": "2026-07-08T09:12:02Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 14150,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121206,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121206；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15407,
+    "last_waker_tid": 121208,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:02Z",
+    "end": "2026-07-08T09:12:03Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15407,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121208,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121208；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17120,
+    "last_waker_tid": 121204,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:03Z",
+    "end": "2026-07-08T09:12:04Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17120,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121204,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121204；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17283,
+    "last_waker_tid": 121215,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:03Z",
+    "end": "2026-07-08T09:12:04Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17283,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121215,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121215；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16021,
+    "last_waker_tid": 121204,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:04Z",
+    "end": "2026-07-08T09:12:05Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16021,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121204,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121204；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19268,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:04Z",
+    "end": "2026-07-08T09:12:05Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19268,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15337,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:05Z",
+    "end": "2026-07-08T09:12:06Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15337,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19107,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:05Z",
+    "end": "2026-07-08T09:12:06Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19107,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 18924,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.99,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:06Z",
+    "end": "2026-07-08T09:12:07Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.99,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 18924,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 14698,
+    "last_waker_tid": 121212,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:07Z",
+    "end": "2026-07-08T09:12:08Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 14698,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121212,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121212；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17356,
+    "last_waker_tid": 121206,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:07Z",
+    "end": "2026-07-08T09:12:08Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17356,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121206,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121206；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121219,
+    "tid": 121219,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 13407,
+    "last_waker_tid": 121204,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:08Z",
+    "end": "2026-07-08T09:12:09Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 13407,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121204,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121204；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 18695,
+    "last_waker_tid": 121203,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:08Z",
+    "end": "2026-07-08T09:12:09Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 18695,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121203,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121203；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 12102,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:09Z",
+    "end": "2026-07-08T09:12:10Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 12102,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 14251,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:10Z",
+    "end": "2026-07-08T09:12:11Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 14251,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16677,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:10Z",
+    "end": "2026-07-08T09:12:11Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16677,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15943,
+    "last_waker_tid": 121204,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:11Z",
+    "end": "2026-07-08T09:12:12Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15943,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121204,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121204；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17617,
+    "last_waker_tid": 121198,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:11Z",
+    "end": "2026-07-08T09:12:12Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17617,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121198,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121198；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 20060,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:12Z",
+    "end": "2026-07-08T09:12:13Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 20060,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16315,
+    "last_waker_tid": 121218,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:12Z",
+    "end": "2026-07-08T09:12:13Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16315,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121218,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121218；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121219,
+    "tid": 121219,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16243,
+    "last_waker_tid": 121218,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:13Z",
+    "end": "2026-07-08T09:12:14Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16243,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121218,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121218；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 20851,
+    "last_waker_tid": 121241,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:13Z",
+    "end": "2026-07-08T09:12:14Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 20851,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121241,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121241；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 13968,
+    "last_waker_tid": 121214,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:14Z",
+    "end": "2026-07-08T09:12:15Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 13968,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121214,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121214；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16615,
+    "last_waker_tid": 121214,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:14Z",
+    "end": "2026-07-08T09:12:15Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16615,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121214,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121214；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16681,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:15Z",
+    "end": "2026-07-08T09:12:16Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16681,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15799,
+    "last_waker_tid": 121217,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:16Z",
+    "end": "2026-07-08T09:12:17Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15799,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121217,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121217；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121215,
+    "tid": 121215,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 18723,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:17Z",
+    "end": "2026-07-08T09:12:18Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 18723,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 16175,
+    "last_waker_tid": 121212,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.95,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:17Z",
+    "end": "2026-07-08T09:12:18Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.95,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 16175,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121212,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121212；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 12215,
+    "last_waker_tid": 121214,
+    "max_offcpu_ms": 134.22,
+    "offcpu_ratio": 0.98,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:18Z",
+    "end": "2026-07-08T09:12:19Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.98,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 134.22,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 12215,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121214,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121214；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 10974,
+    "last_waker_tid": 53029,
+    "max_offcpu_ms": 134.22,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:18Z",
+    "end": "2026-07-08T09:12:19Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 134.22,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 10974,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 53029,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=53029；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121218,
+    "tid": 121218,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19859,
+    "last_waker_tid": 121212,
+    "max_offcpu_ms": 134.22,
+    "offcpu_ratio": 1.11,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:19Z",
+    "end": "2026-07-08T09:12:20Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1.11,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 134.22,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19859,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121212,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121212；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121221,
+    "tid": 121221,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 19485,
+    "last_waker_tid": 121209,
+    "max_offcpu_ms": 134.22,
+    "offcpu_ratio": 1.1,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:19Z",
+    "end": "2026-07-08T09:12:20Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 1.1,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 134.22,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 19485,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121209,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121209；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 14612,
+    "last_waker_tid": 121212,
+    "max_offcpu_ms": 134.22,
+    "offcpu_ratio": 0.96,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:19Z",
+    "end": "2026-07-08T09:12:20Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.96,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 134.22,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 14612,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121212,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121212；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15361,
+    "last_waker_tid": 121205,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.93,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:20Z",
+    "end": "2026-07-08T09:12:21Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.93,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15361,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121205,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121205；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121219,
+    "tid": 121219,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15521,
+    "last_waker_tid": 121201,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.92,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:20Z",
+    "end": "2026-07-08T09:12:21Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.92,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15521,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121201,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121201；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121220,
+    "tid": 121220,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15166,
+    "last_waker_tid": 121209,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:21Z",
+    "end": "2026-07-08T09:12:22Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15166,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121209,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121209；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121222,
+    "tid": 121222,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17391,
+    "last_waker_tid": 121209,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.97,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:21Z",
+    "end": "2026-07-08T09:12:22Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.97,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17391,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121209,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121209；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121217,
+    "tid": 121217,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 15029,
+    "last_waker_tid": 121207,
+    "max_offcpu_ms": 4.19,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:22Z",
+    "end": "2026-07-08T09:12:23Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 4.19,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 15029,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121207,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121207；可改用读写锁或无锁结构"
+}
+{
+  "anomaly_type": "锁竞争",
+  "related_object": {
+    "pid": 121223,
+    "tid": 121223,
+    "comm": "stress-ng-futex"
+  },
+  "key_metrics": {
+    "block_count": 17408,
+    "last_waker_tid": 121206,
+    "max_offcpu_ms": 8.39,
+    "offcpu_ratio": 0.94,
+    "stack_status": "symbolized"
+  },
+  "time_window": {
+    "start": "2026-07-08T09:12:22Z",
+    "end": "2026-07-08T09:12:23Z"
+  },
+  "suspected_root_cause": "多线程争用同一锁资源导致阻塞（off-CPU 等锁，疑似临界区过大或锁粒度过粗）",
+  "confidence": 0.9,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "offcpu_ratio",
+      "value": 0.94,
+      "threshold": 0.1,
+      "desc": "阻塞型 off-CPU 时间占墙钟比例"
+    },
+    {
+      "type": "metric",
+      "name": "max_offcpu_ms",
+      "value": 8.39,
+      "desc": "单次最长阻塞时长(毫秒)"
+    },
+    {
+      "type": "event",
+      "name": "block_count",
+      "value": 17408,
+      "desc": "窗口内阻塞切出次数"
+    },
+    {
+      "type": "event",
+      "name": "last_waker_tid",
+      "value": 121206,
+      "desc": "最近唤醒该线程者(唤醒链上游，疑似持锁方)"
+    },
+    {
+      "type": "event",
+      "name": "stack_status",
+      "value": "symbolized",
+      "desc": "阻塞栈符号化状态"
+    },
+    {
+      "type": "stack",
+      "name": "frame_0",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_1",
+      "func": "__schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_2",
+      "func": "schedule",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_3",
+      "func": "futex_wait_queue",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_4",
+      "func": "__futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_5",
+      "func": "futex_wait",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_6",
+      "func": "do_futex",
+      "desc": "阻塞点内核调用栈"
+    },
+    {
+      "type": "stack",
+      "name": "frame_7",
+      "func": "__x64_sys_futex",
+      "desc": "阻塞点内核调用栈"
+    }
+  ],
+  "suggestion": "缩小临界区/细化锁粒度，排查唤醒链上游持锁线程 tid=121206；可改用读写锁或无锁结构"
+}

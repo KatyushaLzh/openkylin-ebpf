@@ -1,0 +1,6 @@
+scenario,status,tool_output,workload_log,started_at,ended_at,note
+cpu,PASS,outputs/repro/cpu_report.json,outputs/repro/raw/cpu_workload.log,2026-07-08T05:46:44Z,2026-07-08T05:47:53Z,"tool output generated"
+io,PASS,outputs/repro/io_report.json,outputs/repro/raw/io_workload.log,2026-07-08T05:47:53Z,2026-07-08T05:49:02Z,"tool output generated"
+mem,PASS,outputs/repro/mem_report.json,outputs/repro/raw/mem_workload.log,2026-07-08T05:49:02Z,2026-07-08T05:50:10Z,"tool output generated"
+lock,PASS,outputs/repro/lock_report.json,outputs/repro/raw/lock_workload.log,2026-07-08T05:50:10Z,2026-07-08T05:51:19Z,"tool output generated"
+syscall,PASS,outputs/repro/syscall_report.json,outputs/repro/raw/syscall_workload.log,2026-07-08T05:51:19Z,2026-07-08T05:52:28Z,"tool output generated"

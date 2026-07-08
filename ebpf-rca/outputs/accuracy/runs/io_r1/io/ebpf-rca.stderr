@@ -1,0 +1,1 @@
+[ebpf-rca] 场景=io interval=1s p99_threshold=0.5ms sustain=1

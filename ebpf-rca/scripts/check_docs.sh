@@ -6,11 +6,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 if [ -z "${GOCACHE:-}" ]; then
-	home_cache="${HOME:-}/.cache/go-build"
-	if [ -z "${HOME:-}" ] || [ ! -d "$home_cache" ] || [ ! -w "$home_cache" ]; then
-		export GOCACHE="${TMPDIR:-/var/tmp}/go-cache"
-		mkdir -p "$GOCACHE"
-	fi
+	export GOCACHE="$ROOT/../.go-cache"
+	mkdir -p "$GOCACHE"
 fi
 
 help_text="$(go run ./cmd/ebpf-rca --help 2>&1 || true)"

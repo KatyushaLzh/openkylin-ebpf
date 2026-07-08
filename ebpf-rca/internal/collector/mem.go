@@ -48,6 +48,7 @@ type MemSnapshot struct {
 	KswapdWakes     uint64 // 窗口内增量
 	Procs           []MemProc
 	TopRSSProc      MemProc
+	Targeted        bool
 }
 
 // MemCollector 加载内存场景的 eBPF 程序并汇总系统内存压力。
@@ -59,10 +60,11 @@ type MemCollector struct {
 	prevRSS    map[uint32]rssSample
 	prevKswapd uint64
 	stale      map[uint32]int
+	target     *targetTracker
 }
 
 // NewMemCollector 加载字节码、挂载 vmscan tracepoint。
-func NewMemCollector() (*MemCollector, error) {
+func NewMemCollector(targetPID uint32) (*MemCollector, error) {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, fmt.Errorf("remove memlock: %w", err)
 	}
@@ -71,6 +73,7 @@ func NewMemCollector() (*MemCollector, error) {
 		prevFault: make(map[uint32]fault),
 		prevRSS:   make(map[uint32]rssSample),
 		stale:     make(map[uint32]int),
+		target:    newTargetTracker(targetPID),
 	}
 	if err := loadMemObjects(&c.objs, nil); err != nil {
 		return nil, fmt.Errorf("load bpf objects: %w", err)
@@ -110,11 +113,21 @@ func (c *MemCollector) Close() {
 // Poll 汇总一个窗口的系统内存状态与进程压力贡献。
 func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 	total, avail := readMemInfo()
-	snap := MemSnapshot{MemTotalKB: total, MemAvailableKB: avail}
+	if c.target.enabled() {
+		c.target.refresh()
+	}
+	snap := MemSnapshot{MemTotalKB: total, MemAvailableKB: avail, Targeted: c.target.enabled()}
 	if total > 0 {
 		snap.MemAvailablePct = float64(avail) / float64(total) * 100
 	}
 	rssSnap := readProcRSSSnapshot()
+	if c.target.enabled() {
+		for pid := range rssSnap {
+			if !c.target.containsTGID(pid) {
+				delete(rssSnap, pid)
+			}
+		}
+	}
 	rssPrimed := len(c.prevRSS) > 0
 	for pid, proc := range rssSnap {
 		if rssPrimed {
@@ -147,6 +160,13 @@ func (c *MemCollector) Poll(interval time.Duration) (MemSnapshot, error) {
 	seenBPF := make(map[uint32]bool, len(cur))
 	for pid, v := range cur {
 		seenBPF[pid] = true
+		if c.target.enabled() && !c.target.containsTGID(pid) {
+			_ = c.objs.MemStats.Delete(pid)
+			_ = c.objs.ReclaimStart.Delete(pid)
+			delete(c.prevFault, pid)
+			delete(cur, pid)
+			continue
+		}
 		p := c.prev[pid]
 		dCount := v.DirectReclaimCount - p.DirectReclaimCount
 		dNs := v.DirectReclaimNs - p.DirectReclaimNs

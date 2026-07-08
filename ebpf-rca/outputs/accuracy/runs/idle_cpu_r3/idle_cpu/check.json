@@ -1,0 +1,7 @@
+{
+  "scenario": "idle_cpu",
+  "kind": "negative",
+  "passed": true,
+  "report_count": 0,
+  "matched_object": {}
+}

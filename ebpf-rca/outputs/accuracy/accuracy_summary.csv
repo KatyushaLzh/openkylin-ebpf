@@ -1,0 +1,10 @@
+scenario,kind,runs,valid_runs,TP,TN,FP,FN,infra_error,diagnostic_accuracy,end_to_end_pass_rate,recall,false_positive_rate,avg_extra_reports,avg_report_count
+cpu,positive,3,3,3,0,0,0,0,100.0,100.0,100.0,,0.0,5.333333333333333
+idle_cpu,negative,3,3,0,3,0,0,0,100.0,100.0,,0.0,0.0,0.0
+idle_io,negative,3,3,0,3,0,0,0,100.0,100.0,,0.0,0.0,0.0
+idle_lock,negative,3,3,0,3,0,0,0,100.0,100.0,,0.0,0.0,0.0
+idle_syscall,negative,3,3,0,3,0,0,0,100.0,100.0,,0.0,0.0,0.0
+io,positive,3,3,3,0,0,0,0,100.0,100.0,100.0,,0.0,2.0
+lock,positive,3,3,3,0,0,0,0,100.0,100.0,100.0,,0.0,55.333333333333336
+mem,positive,3,3,3,0,0,0,0,100.0,100.0,100.0,,0.0,1.0
+syscall,positive,3,3,3,0,0,0,0,100.0,100.0,100.0,,0.0,2.0

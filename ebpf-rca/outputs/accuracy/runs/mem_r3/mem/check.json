@@ -1,0 +1,22 @@
+{
+  "scenario": "mem",
+  "kind": "positive",
+  "passed": true,
+  "report_count": 1,
+  "matched_anomaly_type": "内存抖动",
+  "matched_object": {
+    "pid": 120755,
+    "comm": "stress-ng-vm"
+  },
+  "matched_reports": [
+    {
+      "index": 1,
+      "anomaly_type": "内存抖动",
+      "object": {
+        "pid": 120755,
+        "comm": "stress-ng-vm"
+      }
+    }
+  ],
+  "truth_summary": "root_pid=120744 tgids=[120744,120746,120752,120753,120755,120756] tids=[120744,120746,120752,120753,120755,120756] comms=[bash,stress-ng,stress-ng-vm]"
+}

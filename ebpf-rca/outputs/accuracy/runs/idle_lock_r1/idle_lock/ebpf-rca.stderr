@@ -1,0 +1,1 @@
+[ebpf-rca] 场景=lock interval=1s threshold=0.30 target_pid=122358 sustain=2 include_blocking=false topn=5

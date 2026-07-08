@@ -1,0 +1,87 @@
+{
+  "anomaly_type": "内存抖动",
+  "related_object": {
+    "pid": 7067,
+    "comm": "code"
+  },
+  "key_metrics": {
+    "anon_rss_delta_kb": 60,
+    "anon_rss_kb": 270804,
+    "direct_reclaim_count": 0,
+    "kswapd_wakes": 0,
+    "major_fault": 0,
+    "mem_available_pct": 37.42,
+    "rss_delta_kb": 60,
+    "rss_kb": 370420
+  },
+  "time_window": {
+    "start": "2026-07-08T06:49:52Z",
+    "end": "2026-07-08T06:49:53Z"
+  },
+  "suspected_root_cause": "系统可用内存持续偏低，最大 RSS 进程可能贡献主要内存占用（未观察到 direct reclaim）",
+  "confidence": 0.68,
+  "evidence_chain": [
+    {
+      "type": "metric",
+      "name": "mem_available_pct",
+      "value": 37.42,
+      "threshold": 40,
+      "desc": "可用内存占比持续低于阈值"
+    },
+    {
+      "type": "event",
+      "name": "kswapd_wakes",
+      "value": 0,
+      "desc": "窗口内 kswapd 后台回收唤醒次数"
+    },
+    {
+      "type": "event",
+      "name": "direct_reclaim_count",
+      "value": 0,
+      "desc": "肇事进程窗口内直接回收次数(分配时被迫回收)"
+    },
+    {
+      "type": "metric",
+      "name": "direct_reclaim_ms",
+      "value": 0,
+      "desc": "肇事进程直接回收累计耗时"
+    },
+    {
+      "type": "metric",
+      "name": "major_fault",
+      "value": 0,
+      "desc": "窗口内 major page fault 增量"
+    },
+    {
+      "type": "metric",
+      "name": "minor_fault",
+      "value": 0,
+      "desc": "窗口内 minor page fault 增量"
+    },
+    {
+      "type": "metric",
+      "name": "rss_kb",
+      "value": 370420,
+      "desc": "进程 RSS 采样值(kB)"
+    },
+    {
+      "type": "metric",
+      "name": "anon_rss_kb",
+      "value": 270804,
+      "desc": "进程匿名 RSS 采样值(kB)"
+    },
+    {
+      "type": "metric",
+      "name": "rss_delta_kb",
+      "value": 60,
+      "desc": "窗口内 RSS 增量(kB)"
+    },
+    {
+      "type": "metric",
+      "name": "anon_rss_delta_kb",
+      "value": 60,
+      "desc": "窗口内匿名 RSS 增量(kB)"
+    }
+  ],
+  "suggestion": "检查该进程匿名内存与缓存占用；必要时结合 /proc/smaps 或 cgroup memory 进一步确认"
+}

@@ -1,0 +1,60 @@
+{
+  "scenario": "cpu",
+  "kind": "positive",
+  "passed": true,
+  "report_count": 5,
+  "matched_anomaly_type": "CPU异常占用",
+  "matched_object": {
+    "pid": 120031,
+    "tid": 120031,
+    "comm": "stress-ng-cpu"
+  },
+  "matched_reports": [
+    {
+      "index": 1,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 120031,
+        "tid": 120031,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 2,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 120030,
+        "tid": 120030,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 3,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 120031,
+        "tid": 120031,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 4,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 120030,
+        "tid": 120030,
+        "comm": "stress-ng-cpu"
+      }
+    },
+    {
+      "index": 5,
+      "anomaly_type": "CPU异常占用",
+      "object": {
+        "pid": 120030,
+        "tid": 120030,
+        "comm": "stress-ng-cpu"
+      }
+    }
+  ],
+  "truth_summary": "root_pid=120023 tgids=[120023,120029,120030,120031] tids=[120023,120029,120030,120031] comms=[bash,stress-ng,stress-ng-cpu]"
+}

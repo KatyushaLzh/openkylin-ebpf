@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitlink.org.cn/ebpf-rca/schemas/anomaly_report.schema.json",
+  "title": "ebpf-rca AnomalyReport",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "anomaly_type",
+    "related_object",
+    "key_metrics",
+    "time_window",
+    "suspected_root_cause",
+    "confidence",
+    "evidence_chain",
+    "suggestion"
+  ],
+  "properties": {
+    "anomaly_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "异常类型，例如 CPU异常占用、I/O延迟抖动、内存抖动、锁竞争、系统调用热点。"
+    },
+    "related_object": {
+      "type": "object",
+      "description": "关联对象。进程/线程类异常至少包含 pid/tid/comm；设备类异常可包含 dev/device；syscall 场景可包含 syscall。",
+      "minProperties": 1,
+      "additionalProperties": true
+    },
+    "key_metrics": {
+      "type": "object",
+      "description": "关键指标。必须保留可量化数值，例如 cpu_util、p99_latency_ms、iops、offcpu_ratio、syscall_count。",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": ["number", "integer", "string", "boolean", "object", "array", "null"]
+      }
+    },
+    "time_window": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "minLength": 1 },
+        "end": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "suspected_root_cause": {
+      "type": "string",
+      "minLength": 1,
+      "description": "疑似根因，措辞需贴近官方参考根因，并由 evidence_chain 支撑。"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "置信度，确定性规则推断结果建议给 0~1 数值。"
+    },
+    "evidence_chain": {
+      "type": "array",
+      "minItems": 1,
+      "description": "证据链。建议至少包含 metric/event/stack 中的两类，保证结论可回溯。",
+      "items": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": true,
+        "properties": {
+          "type": { "type": "string", "description": "metric/event/stack/log/rule" },
+          "name": { "type": "string" },
+          "value": {},
+          "threshold": {},
+          "desc": { "type": "string" },
+          "func": { "type": "string" }
+        }
+      }
+    },
+    "suggestion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "建议性结论，给出可执行排查/优化方向。"
+    }
+  }
+}

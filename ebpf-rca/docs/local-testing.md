@@ -89,6 +89,42 @@ bash scripts/test_local.sh scenario --scenario io --duration 30
 make test-local TEST_DURATION=60
 ```
 
+## 多轮准确率评测
+
+单轮 `test_local.sh` 用于判断一次注入是否命中。需要形成比赛报告里的“准确率 / 误报率 /
+混淆矩阵”时，使用多轮评测脚本：
+
+```bash
+# 默认：五类正例 + 四类 idle 负例，每场景 3 轮，stress workload
+make accuracy-full
+
+# 快速回归：只跑 CPU，两轮 deterministic workload
+python3 scripts/eval_accuracy.py --scenario cpu --repeat 2 --workload deterministic --duration 15 --out outputs/accuracy-cpu
+
+# 不重新跑 eBPF，只聚合已有 check.json 并重生成 CSV/Markdown/SVG
+python3 scripts/eval_accuracy.py --from-existing outputs/accuracy/runs --out outputs/accuracy
+```
+
+统计口径：
+
+- 正例：`passed=true` 且 `matched_reports` 非空记为 TP，否则记为 FN。
+- 负例：`passed=true` 且 `report_count=0` 记为 TN，否则记为 FP。
+- `check.json` 缺失或无法解析记为 `infra_error`。
+- `extra_report_count` 单独统计，不混入 TP/FN。
+
+产物写入 `outputs/accuracy/`：
+
+```text
+outputs/accuracy/
+├── accuracy.md
+├── accuracy_runs.csv
+├── accuracy_summary.csv
+├── accuracy_summary.json
+├── pass_rate_by_scenario.svg
+├── error_breakdown.svg
+└── runs/
+```
+
 ## 测试集配置
 
 测试集在 `tests/scenarios.yaml`：
