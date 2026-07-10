@@ -1,29 +1,22 @@
 package detector
 
-import (
-	"time"
+import "github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 
-	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
-)
-
-// MemSignal 表示一次已确认的内存抖动 / 回收压力异常。
 type MemSignal struct {
-	Snapshot    collector.MemSnapshot
-	Culprit     collector.MemProc // 主要肇事进程（按 direct reclaim / major fault / RSS 增长优先级选取）
-	WindowStart time.Time
-	WindowEnd   time.Time
+	Snapshot collector.MemSnapshot
+	Culprit  collector.MemProc
+	OOM      bool
+	Window   collector.ObservationWindow
 }
 
-// MemDetector 检测低可用内存或直接回收、kswapd、major fault、RSS 增长等强内存压力信号。
 type MemDetector struct {
-	AvailPctFloor float64 // 可用内存占比下限(%)
+	AvailPctFloor float64
 	SustainTicks  int
 	count         int
-	firstSeen     time.Time
+	firstSeen     collector.ObservationWindow
 	fired         bool
 }
 
-// NewMemDetector 构造检测器（阈值单位为百分比）。
 func NewMemDetector(availPctFloor float64, sustain int) *MemDetector {
 	if sustain < 1 {
 		sustain = 1
@@ -31,81 +24,108 @@ func NewMemDetector(availPctFloor float64, sustain int) *MemDetector {
 	return &MemDetector{AvailPctFloor: availPctFloor, SustainTicks: sustain}
 }
 
-// Detect 处理一个窗口的内存快照，返回新触发的异常信号（0 或 1 个）。
-func (d *MemDetector) Detect(snap collector.MemSnapshot, now time.Time) []MemSignal {
-	if !hasMemPressureSignal(snap, d.AvailPctFloor) {
+func (d *MemDetector) Detect(snap collector.MemSnapshot) []MemSignal {
+	if !snap.Window.Valid() {
+		d.count = 0
+		d.fired = false
+		return nil
+	}
+	// mark_victim is an authoritative event and must not wait for sustain.
+	if snap.OOMVictimCount > 0 {
+		d.count = 0
+		d.fired = false
+		return []MemSignal{{
+			Snapshot: snap,
+			Culprit:  pickOOMVictim(snap.OOMVictims),
+			OOM:      true,
+			Window:   snap.Window,
+		}}
+	}
+
+	if !hasOrdinaryMemPressure(snap, d.AvailPctFloor) {
 		d.count = 0
 		d.fired = false
 		return nil
 	}
 	if d.count == 0 {
-		d.firstSeen = now
+		d.firstSeen = snap.Window
 	}
 	d.count++
 	if d.count >= d.SustainTicks && !d.fired {
 		d.fired = true
 		return []MemSignal{{
-			Snapshot:    snap,
-			Culprit:     pickCulprit(snap),
-			WindowStart: d.firstSeen,
-			WindowEnd:   now,
+			Snapshot: snap,
+			Culprit:  pickCulprit(snap),
+			Window:   d.firstSeen.Extend(snap.Window),
 		}}
 	}
 	return nil
 }
 
-func hasMemPressureSignal(snap collector.MemSnapshot, availPctFloor float64) bool {
-	if snap.MemTotalKB > 0 && snap.MemAvailablePct < availPctFloor {
-		return !snap.Targeted || snap.TopRSSProc.Pid != 0 || len(snap.Procs) > 0
+func hasOrdinaryMemPressure(snap collector.MemSnapshot, availPctFloor float64) bool {
+	systemPressure := (snap.MemTotalKB > 0 && snap.MemAvailablePct < availPctFloor) ||
+		snap.PSISomePct >= collector.MemPSISomeSignalPct ||
+		snap.PSIFullPct >= collector.MemPSIFullSignalPct ||
+		snap.DirectReclaimMsPerSec >= collector.MemDirectReclaimSignalMsPerSec
+	if !systemPressure {
+		return false
 	}
-	if snap.KswapdWakes > 0 {
+	if snap.GlobalContribution {
 		return true
 	}
-	for _, p := range snap.Procs {
-		if p.DirectReclaimCount > 0 || p.MajFlt > 0 || hasRSSGrowthSignal(p) {
+	for _, proc := range snap.Procs {
+		if isMemContributor(proc) {
 			return true
 		}
 	}
 	return false
 }
 
-func hasRSSGrowthSignal(p collector.MemProc) bool {
-	return p.RSSDeltaKB >= collector.MemRSSGrowthSignalKB ||
-		p.AnonRSSDeltaKB >= collector.MemRSSGrowthSignalKB
+func isMemContributor(proc collector.MemProc) bool {
+	return proc.DirectReclaimCount > 0 || proc.DirectReclaimMs > 0 ||
+		proc.AnonRSSGrowthKBPerSec >= collector.MemAnonRSSGrowthSignalKBPerSec ||
+		proc.MajFltPerSec >= collector.MemMajorFaultSignalPerSec
 }
 
-// pickCulprit 选取压力贡献最大的进程：direct reclaim > major fault > RSS/AnonRSS 增长 > 最大 RSS。
+func pickOOMVictim(victims []collector.MemProc) collector.MemProc {
+	var best collector.MemProc
+	for _, victim := range victims {
+		if victim.OOMVictimCount > best.OOMVictimCount {
+			best = victim
+		}
+	}
+	return best
+}
+
+// Causality order: direct reclaim > anonymous working-set growth > major
+// faults.  Merely being the largest RSS process is not causal evidence.
 func pickCulprit(snap collector.MemSnapshot) collector.MemProc {
 	var best collector.MemProc
-	for _, p := range snap.Procs {
-		if p.DirectReclaimCount > 0 &&
-			(p.DirectReclaimCount > best.DirectReclaimCount ||
-				(p.DirectReclaimCount == best.DirectReclaimCount && p.DirectReclaimMs > best.DirectReclaimMs)) {
-			best = p
-		}
-	}
-	if best.Pid != 0 {
-		return best
-	}
-	for _, p := range snap.Procs {
-		if p.MajFlt > 0 && p.MajFlt > best.MajFlt {
-			best = p
-		}
-	}
-	if best.Pid != 0 {
-		return best
-	}
-	for _, p := range snap.Procs {
-		if !hasRSSGrowthSignal(p) {
+	for _, proc := range snap.Procs {
+		if proc.DirectReclaimCount == 0 && proc.DirectReclaimMs == 0 {
 			continue
 		}
-		if p.AnonRSSDeltaKB > best.AnonRSSDeltaKB ||
-			(p.AnonRSSDeltaKB == best.AnonRSSDeltaKB && p.RSSDeltaKB > best.RSSDeltaKB) {
-			best = p
+		if proc.DirectReclaimMs > best.DirectReclaimMs ||
+			(proc.DirectReclaimMs == best.DirectReclaimMs && proc.DirectReclaimCount > best.DirectReclaimCount) {
+			best = proc
 		}
 	}
-	if best.Pid == 0 {
-		best = snap.TopRSSProc
+	if best.Pid != 0 {
+		return best
+	}
+	for _, proc := range snap.Procs {
+		if proc.AnonRSSGrowthKBPerSec >= collector.MemAnonRSSGrowthSignalKBPerSec &&
+			proc.AnonRSSGrowthKBPerSec > best.AnonRSSGrowthKBPerSec {
+			best = proc
+		}
+	}
+	if best.Pid != 0 {
+		return best
+	}
+	for _, proc := range snap.Procs {
+		if proc.MajFltPerSec >= collector.MemMajorFaultSignalPerSec && proc.MajFltPerSec > best.MajFltPerSec {
+			best = proc
+		}
 	}
 	return best
 }

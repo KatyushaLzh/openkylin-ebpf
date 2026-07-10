@@ -10,10 +10,13 @@ if [ -z "${GOCACHE:-}" ]; then
 	mkdir -p "$GOCACHE"
 fi
 
-help_text="$(go run ./cmd/ebpf-rca --help 2>&1 || true)"
+help_text="$(go run ./cmd/ebpf-rca --help 2>&1)"
 required_flags=(
 	--scenario
 	--interval
+	--duration
+	--format
+	--output
 	--threshold
 	--cpu-threshold
 	--io-p99-threshold-ms
@@ -23,6 +26,7 @@ required_flags=(
 	--lock-topn
 	--syscall-rate-threshold
 	--target-pid
+	--allow-partial
 	--report
 )
 
@@ -38,11 +42,28 @@ for flag in "${required_flags[@]}"; do
 	fi
 done
 
-for path in docs/design.md docs/testing.md docs/troubleshooting.md docs/docker.md tests/scenarios.yaml; do
+for path in ../README.md ../SETUP.md docs/design.md docs/testing.md docs/troubleshooting.md docs/docker.md tests/scenarios.yaml; do
 	if [ ! -f "$path" ]; then
 		echo "documented path missing: $path" >&2
 		exit 1
 	fi
 done
+
+if ! grep -q 'DiagnosticSession' ../SETUP.md || ! grep -q -- '--format jsonl' ../SETUP.md; then
+	echo "SETUP.md must distinguish final JSON sessions from realtime JSONL" >&2
+	exit 1
+fi
+for collector in cpu io mem lock syscall; do
+	if ! grep -Eq "\"name\": \"$collector\".*\"health\"" README.md; then
+		echo "README DiagnosticSession example lacks health for $collector" >&2
+		exit 1
+	fi
+done
+
+if ! awk 'BEGIN{inside=0} /^```json$/{if (!inside) {inside=1; next}} inside && /^```$/{exit} inside{print}' README.md |
+	python3 -m json.tool >/dev/null; then
+	echo "README DiagnosticSession example is not valid JSON" >&2
+	exit 1
+fi
 
 echo "docs check passed"

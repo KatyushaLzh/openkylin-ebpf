@@ -1,0 +1,70 @@
+name: eBPF E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      full_acceptance:
+        description: "Run 30-minute soak and five-round performance acceptance"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  ebpf-e2e:
+    name: openKylin ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            labels: [self-hosted, linux, x64, openkylin, ebpf]
+          - arch: arm64
+            labels: [self-hosted, linux, arm64, openkylin, ebpf]
+    runs-on: ${{ matrix.labels }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: ebpf-rca
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify environment
+        run: |
+          test -r /sys/kernel/btf/vmlinux
+          grep -Eiq '^(ID|NAME)=.*openkylin' /etc/os-release
+          case "${{ matrix.arch }}" in
+            x86_64) test "$(uname -m)" = x86_64 ;;
+            arm64) test "$(uname -m)" = aarch64 -o "$(uname -m)" = arm64 ;;
+          esac
+          sudo -n true
+
+      - name: Clean-clone unit and build
+        run: |
+          make verify-generated
+          go test ./...
+          make build test-checker test-load
+
+      - name: Five-scenario E2E
+        run: bash scripts/test_local.sh all --duration 30 --no-build --out "test-results/${{ matrix.arch }}-e2e"
+
+      - name: Full platform acceptance
+        if: ${{ inputs.full_acceptance }}
+        run: bash scripts/platform_acceptance.sh --out "outputs/platform/${{ matrix.arch }}" --soak-duration 30m --accuracy-repeat 10 --bench-repeat 5
+
+      - name: Regenerate from host BTF and rebuild
+        run: |
+          make vmlinux
+          make generate
+          go test ./...
+          make build test-checker test-load
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ebpf-e2e-${{ matrix.arch }}
+          path: |
+            ebpf-rca/test-results/${{ matrix.arch }}-e2e
+            ebpf-rca/outputs/platform/${{ matrix.arch }}
+          if-no-files-found: warn

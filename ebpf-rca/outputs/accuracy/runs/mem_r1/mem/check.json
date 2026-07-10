@@ -5,7 +5,7 @@
   "report_count": 1,
   "matched_anomaly_type": "内存抖动",
   "matched_object": {
-    "pid": 120526,
+    "pid": 84273,
     "comm": "stress-ng-vm"
   },
   "matched_reports": [
@@ -13,10 +13,10 @@
       "index": 1,
       "anomaly_type": "内存抖动",
       "object": {
-        "pid": 120526,
+        "pid": 84273,
         "comm": "stress-ng-vm"
       }
     }
   ],
-  "truth_summary": "root_pid=120515 tgids=[120515,120517,120523,120525,120526,120527] tids=[120515,120517,120523,120525,120526,120527] comms=[bash,stress-ng,stress-ng-vm]"
+  "truth_summary": "root_pid=84260 tgids=[84260,84263,84270,84271,84272,84273] tids=[84260,84263,84270,84271,84272,84273] comms=[bash,stress-ng,stress-ng-vm]"
 }

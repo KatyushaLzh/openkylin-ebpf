@@ -11,11 +11,29 @@ echo "[repro] 启动 ebpf-rca 场景=syscall（后台）..."
 sudo "$BIN" --scenario syscall --interval 1s --threshold 10000 --sustain 2 \
 	--format md --duration "${DUR}s" &
 RCA_PID=$!
+cleanup() {
+	if kill -0 "$RCA_PID" 2>/dev/null; then
+		if kill "$RCA_PID" 2>/dev/null; then :; fi
+	fi
+}
+trap cleanup EXIT
 
 sleep 2
 echo "[repro] 注入高频系统调用负载（dd 1字节块读写）..."
 # bs=1 使每次仅搬运 1 字节 -> 海量 read/write syscall
-timeout "${DUR}s" dd if=/dev/zero of=/dev/null bs=1 count=200000000 2>/dev/null || true
+set +e
+timeout "${DUR}s" dd if=/dev/zero of=/dev/null bs=1 count=200000000 2>/dev/null
+WORKLOAD_RC=$?
+wait "$RCA_PID" 2>/dev/null
+TOOL_RC=$?
+set -e
 
-wait "$RCA_PID" 2>/dev/null || true
+if [ "$WORKLOAD_RC" -ne 0 ] && [ "$WORKLOAD_RC" -ne 124 ]; then
+	echo "[repro] 失败：workload=$WORKLOAD_RC" >&2
+	exit 1
+fi
+if [ "$TOOL_RC" -ne 0 ]; then
+	echo "[repro] 失败：tool=$TOOL_RC" >&2
+	exit 1
+fi
 echo "[repro] 完成。"

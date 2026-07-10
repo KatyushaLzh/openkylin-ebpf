@@ -4,7 +4,7 @@ json_error,
 missing_required,
 evidence_len,7
 p99_latency,NA
-avg_latency,515.7
+avg_latency,0.15
 throughput,NA
 iops,NA
-confidence,0.82
+confidence,0.85

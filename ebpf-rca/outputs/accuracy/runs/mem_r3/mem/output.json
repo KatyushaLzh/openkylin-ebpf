@@ -1,22 +1,22 @@
 {
   "anomaly_type": "内存抖动",
   "related_object": {
-    "pid": 120755,
+    "pid": 84518,
     "comm": "stress-ng-vm"
   },
   "key_metrics": {
-    "anon_rss_delta_kb": 241648,
-    "anon_rss_kb": 273352,
+    "anon_rss_delta_kb": 173104,
+    "anon_rss_kb": 270992,
     "direct_reclaim_count": 0,
     "kswapd_wakes": 0,
     "major_fault": 0,
-    "mem_available_pct": 23.8,
-    "rss_delta_kb": 242304,
-    "rss_kb": 275184
+    "mem_available_pct": 26.54,
+    "rss_delta_kb": 173736,
+    "rss_kb": 272900
   },
   "time_window": {
-    "start": "2026-07-08T09:10:05Z",
-    "end": "2026-07-08T09:10:06Z"
+    "start": "2026-07-09T12:12:55Z",
+    "end": "2026-07-09T12:12:56Z"
   },
   "suspected_root_cause": "业务进程 RSS/匿名 RSS 在采样窗口内快速增长，疑似内存突增或泄漏导致系统压力上升",
   "confidence": 0.8,
@@ -24,7 +24,7 @@
     {
       "type": "metric",
       "name": "mem_available_pct",
-      "value": 23.8,
+      "value": 26.54,
       "threshold": 40,
       "desc": "可用内存占比持续低于阈值"
     },
@@ -61,25 +61,25 @@
     {
       "type": "metric",
       "name": "rss_kb",
-      "value": 275184,
+      "value": 272900,
       "desc": "进程 RSS 采样值(kB)"
     },
     {
       "type": "metric",
       "name": "anon_rss_kb",
-      "value": 273352,
+      "value": 270992,
       "desc": "进程匿名 RSS 采样值(kB)"
     },
     {
       "type": "metric",
       "name": "rss_delta_kb",
-      "value": 242304,
+      "value": 173736,
       "desc": "窗口内 RSS 增量(kB)"
     },
     {
       "type": "metric",
       "name": "anon_rss_delta_kb",
-      "value": 241648,
+      "value": 173104,
       "desc": "窗口内匿名 RSS 增量(kB)"
     }
   ],

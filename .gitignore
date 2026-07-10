@@ -38,17 +38,8 @@ ebpf-rca/report.md
 ebpf-rca/out/
 ebpf-rca/test-results/
 
-# ebpf-rca generated CO-RE/BPF artifacts
+# ebpf-rca host-local CO-RE headers.  The bpf2go Go/ELF outputs under
+# internal/collector are intentionally tracked so a clean clone can build and
+# run unit tests without the build host's BTF/clang toolchain.
 ebpf-rca/bpf/vmlinux.h
 ebpf-rca/bpf/bpf/
-ebpf-rca/internal/collector/cpu_bpfel.go
-ebpf-rca/internal/collector/cpu_bpfeb.go
-ebpf-rca/internal/collector/lock_bpfel.go
-ebpf-rca/internal/collector/lock_bpfeb.go
-ebpf-rca/internal/collector/block_bpfel.go
-ebpf-rca/internal/collector/block_bpfeb.go
-ebpf-rca/internal/collector/mem_bpfel.go
-ebpf-rca/internal/collector/mem_bpfeb.go
-ebpf-rca/internal/collector/syscall_bpfel.go
-ebpf-rca/internal/collector/syscall_bpfeb.go
-ebpf-rca/internal/collector/*.o

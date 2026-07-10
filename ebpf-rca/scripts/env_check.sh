@@ -68,7 +68,7 @@ stress_ng_ver() {
   elif command -v stress-ng >/dev/null 2>&1; then
     bin="$(command -v stress-ng)"
   else
-    record FAIL "stress-ng" "not found；CPU/mem/lock workload 需要 stress-ng，可运行 make deps 或安装系统包"
+    record FAIL "stress-ng" "not found；性能 benchmark 与附加 stress 回归需要 stress-ng，可运行 make deps 或安装系统包"
     return
   fi
   local v
@@ -157,6 +157,15 @@ if [[ -r /sys/kernel/btf/vmlinux ]]; then
   record PASS "BTF: /sys/kernel/btf/vmlinux" "exists, size=${size} bytes"
 else
   record FAIL "BTF: /sys/kernel/btf/vmlinux" "missing；CO-RE 运行前提不足"
+fi
+
+if awk '$1 != "0000000000000000" && $1 != "00000000" { found=1; exit } END { exit !found }' /proc/kallsyms 2>/dev/null; then
+  record PASS "kallsyms" "/proc/kallsyms exposes non-zero addresses for lock classification"
+else
+  record FAIL "kallsyms" "unreadable/zero addresses；lock collector preflight will fail (check root and kernel.kptr_restrict)"
+fi
+if [[ -r /proc/sys/kernel/perf_event_paranoid ]]; then
+  record PASS "perf_event_paranoid" "$(cat /proc/sys/kernel/perf_event_paranoid)；CPU heartbeat still requires successful per-CPU perf_event_open"
 fi
 
 if [[ -d /sys/fs/bpf ]]; then

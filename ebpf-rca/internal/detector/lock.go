@@ -1,28 +1,34 @@
 package detector
 
-import (
-	"time"
+import "github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 
-	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
-)
-
-// LockSignal 表示一次已确认的锁竞争/长阻塞异常。
 type LockSignal struct {
-	Sample      collector.LockSample
-	WindowStart time.Time
-	WindowEnd   time.Time
+	Sample collector.LockSample
+	Window collector.ObservationWindow
 }
 
-// LockDetector 检测持续高 off-CPU 阻塞占比的线程。
+type lockIdentity struct {
+	tgid        uint32
+	address     uint64
+	kernelStack int32
+}
+
+func identityOfLock(sample collector.LockSample) lockIdentity {
+	id := lockIdentity{tgid: sample.Pid, address: sample.LockAddress}
+	if sample.LockAddress == 0 {
+		id.kernelStack = sample.StackID
+	}
+	return id
+}
+
 type LockDetector struct {
-	Threshold    float64 // off-CPU 阻塞占比阈值(0..1)
+	Threshold    float64
 	SustainTicks int
-	counters     map[uint32]int
-	firstSeen    map[uint32]time.Time
-	fired        map[uint32]bool
+	counters     map[lockIdentity]int
+	firstSeen    map[lockIdentity]collector.ObservationWindow
+	fired        map[lockIdentity]bool
 }
 
-// NewLockDetector 构造检测器。
 func NewLockDetector(threshold float64, sustain int) *LockDetector {
 	if sustain < 1 {
 		sustain = 1
@@ -30,41 +36,40 @@ func NewLockDetector(threshold float64, sustain int) *LockDetector {
 	return &LockDetector{
 		Threshold:    threshold,
 		SustainTicks: sustain,
-		counters:     make(map[uint32]int),
-		firstSeen:    make(map[uint32]time.Time),
-		fired:        make(map[uint32]bool),
+		counters:     make(map[lockIdentity]int),
+		firstSeen:    make(map[lockIdentity]collector.ObservationWindow),
+		fired:        make(map[lockIdentity]bool),
 	}
 }
 
-// Detect 处理一个窗口的样本，返回本窗口新触发的异常信号。
-func (d *LockDetector) Detect(samples []collector.LockSample, now time.Time) []LockSignal {
-	active := make(map[uint32]bool, len(samples))
+func (d *LockDetector) Detect(samples []collector.LockSample) []LockSignal {
+	active := make(map[lockIdentity]bool, len(samples))
 	var signals []LockSignal
-
-	for _, s := range samples {
-		if s.OffcpuRatio < d.Threshold {
+	for _, sample := range samples {
+		// A single FUTEX_WAIT only proves synchronization (for example an idle
+		// condition-variable waiter), not contention. Require at least two
+		// distinct waiting TIDs in the same instance/window before assigning the
+		// stable lock.futex_contention root-cause code.
+		if !sample.Window.Valid() || sample.OffcpuRatio < d.Threshold ||
+			(sample.Futex && sample.WaiterCount < 2) {
 			continue
 		}
-		active[s.Pid] = true
-		if d.counters[s.Pid] == 0 {
-			d.firstSeen[s.Pid] = now
+		key := identityOfLock(sample)
+		active[key] = true
+		if d.counters[key] == 0 {
+			d.firstSeen[key] = sample.Window
 		}
-		d.counters[s.Pid]++
-		if d.counters[s.Pid] >= d.SustainTicks && !d.fired[s.Pid] {
-			d.fired[s.Pid] = true
-			signals = append(signals, LockSignal{
-				Sample:      s,
-				WindowStart: d.firstSeen[s.Pid],
-				WindowEnd:   now,
-			})
+		d.counters[key]++
+		if d.counters[key] >= d.SustainTicks && !d.fired[key] {
+			d.fired[key] = true
+			signals = append(signals, LockSignal{Sample: sample, Window: d.firstSeen[key].Extend(sample.Window)})
 		}
 	}
-
-	for pid := range d.counters {
-		if !active[pid] {
-			delete(d.counters, pid)
-			delete(d.firstSeen, pid)
-			delete(d.fired, pid)
+	for key := range d.counters {
+		if !active[key] {
+			delete(d.counters, key)
+			delete(d.firstSeen, key)
+			delete(d.fired, key)
 		}
 	}
 	return signals

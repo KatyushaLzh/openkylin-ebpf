@@ -19,6 +19,8 @@ func Write(w io.Writer, r schema.AnomalyReport, format string) error {
 		enc := json.NewEncoder(w)
 		enc.SetIndent("", "  ")
 		return enc.Encode(r)
+	case "jsonl":
+		return WriteJSONL(w, r)
 	case "yaml", "yml":
 		b, err := yaml.Marshal(r)
 		if err != nil {
@@ -36,11 +38,32 @@ func Write(w io.Writer, r schema.AnomalyReport, format string) error {
 	}
 }
 
+// WriteJSONL 输出一行紧凑 AnomalyReport，适用于实时消费。
+func WriteJSONL(w io.Writer, r schema.AnomalyReport) error {
+	if err := schema.ValidateAnomalyReport(r); err != nil {
+		return fmt.Errorf("validate anomaly report: %w", err)
+	}
+	return json.NewEncoder(w).Encode(r)
+}
+
+// WriteSession 输出 --format json 的单个会话 envelope。
+func WriteSession(w io.Writer, session schema.DiagnosticSession) error {
+	if err := schema.ValidateDiagnosticSession(session); err != nil {
+		return fmt.Errorf("validate diagnostic session: %w", err)
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(session)
+}
+
 func writeMarkdown(w io.Writer, r schema.AnomalyReport) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, "## 诊断报告：%s\n\n", r.AnomalyType)
 	fmt.Fprintf(&b, "- **关联对象**: %s\n", relatedObjectString(r.RelatedObject))
 	fmt.Fprintf(&b, "- **时间窗口**: %s ~ %s\n", r.TimeWindow.Start, r.TimeWindow.End)
+	if r.RootCauseCode != "" {
+		fmt.Fprintf(&b, "- **根因代码**: `%s`\n", r.RootCauseCode)
+	}
 	fmt.Fprintf(&b, "- **疑似根因**: %s（置信度 %.2f）\n", r.SuspectedRootCause, r.Confidence)
 	fmt.Fprintf(&b, "- **建议**: %s\n\n", r.Suggestion)
 
@@ -81,6 +104,12 @@ func relatedObjectString(o schema.RelatedObject) string {
 	}
 	if o.Comm != "" {
 		parts = append(parts, "comm="+o.Comm)
+	}
+	if o.LockAddress != 0 {
+		parts = append(parts, fmt.Sprintf("lock_address=0x%x", o.LockAddress))
+	}
+	if o.Scope != "" {
+		parts = append(parts, "scope="+o.Scope)
 	}
 	if len(parts) == 0 {
 		return "system"

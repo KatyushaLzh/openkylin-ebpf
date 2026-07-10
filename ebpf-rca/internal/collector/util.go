@@ -3,12 +3,60 @@ package collector
 import (
 	"fmt"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
 
+func readOnlineCPUs() ([]int, error) {
+	raw, err := os.ReadFile("/sys/devices/system/cpu/online")
+	if err != nil {
+		return nil, fmt.Errorf("read online CPU list: %w", err)
+	}
+	return parseCPUList(string(raw))
+}
+
+func parseCPUList(raw string) ([]int, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, fmt.Errorf("online CPU list is empty")
+	}
+	seen := make(map[int]struct{})
+	for _, item := range strings.Split(raw, ",") {
+		bounds := strings.Split(item, "-")
+		if len(bounds) > 2 || bounds[0] == "" {
+			return nil, fmt.Errorf("invalid CPU range %q", item)
+		}
+		first, err := strconv.Atoi(bounds[0])
+		if err != nil || first < 0 {
+			return nil, fmt.Errorf("invalid CPU id %q", bounds[0])
+		}
+		last := first
+		if len(bounds) == 2 {
+			last, err = strconv.Atoi(bounds[1])
+			if err != nil || last < first {
+				return nil, fmt.Errorf("invalid CPU range %q", item)
+			}
+		}
+		if last > 1_000_000 {
+			return nil, fmt.Errorf("CPU id %d is unreasonably large", last)
+		}
+		for cpu := first; cpu <= last; cpu++ {
+			seen[cpu] = struct{}{}
+		}
+	}
+	cpus := make([]int, 0, len(seen))
+	for cpu := range seen {
+		cpus = append(cpus, cpu)
+	}
+	sort.Ints(cpus)
+	return cpus, nil
+}
+
 const (
-	histNSlots               = 32
+	histNSlots               = 48
 	staleWindowsBeforeDelete = 3
 )
 

@@ -2,7 +2,7 @@
   "scenario": "io",
   "kind": "positive",
   "passed": true,
-  "report_count": 2,
+  "report_count": 3,
   "matched_anomaly_type": "I/O延迟抖动",
   "matched_object": {
     "device": "8:0 sda"
@@ -21,7 +21,14 @@
       "object": {
         "device": "8:0 sda"
       }
+    },
+    {
+      "index": 3,
+      "anomaly_type": "I/O延迟抖动",
+      "object": {
+        "device": "8:0 sda"
+      }
     }
   ],
-  "truth_summary": "root_pid=120376 tgids=[120376,120378,120391,120392] tids=[120376,120378,120385,120391,120392] comms=[bash,fio] io_device=8:0"
+  "truth_summary": "root_pid=84102 tgids=[84102,84104,84121,84122] tids=[84102,84104,84111,84121,84122] comms=[bash,fio] io_device=8:0"
 }

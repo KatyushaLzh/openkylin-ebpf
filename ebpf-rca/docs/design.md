@@ -1,152 +1,180 @@
 # 设计说明
 
-## 1. 目标与原则
+## 1. 正确性边界
 
-实现一套低开销的系统异常观测与**根因定位**工具，输出带证据链的结构化诊断。
+`ebpf-rca` 的核心目标是用可回溯证据定位系统异常根因。确定性规则负责判定，LLM 不参与
+采集或分类。性能是需要 benchmark 证明的验收项，不把“内核态聚合”等设计选择直接等同于
+“低开销”。
 
-- **低开销**：内核态只做按线程聚合（hash map），不做 per-event 上送；用户态按窗口差分读取。
-- **零幻觉、可回溯**：根因判定全部走确定性规则，每条结论附带可追溯证据；LLM 仅可用于上层报告润色，不参与判定。
-- **可扩展**：采集/检测/推断/输出分层解耦，新增异常场景 = 新增一组探针 + 检测器 + 推断规则。
+运行硬前提是 **openKylin、Kernel 6.6+、可读 BTF**，并且内核支持 typed BTF
+tracepoint、`fentry/fexit` 和 per-CPU software perf event；lock 分类还要求 `/proc/kallsyms`
+可读且地址未被清零。CPU、I/O、OOM、锁和 syscall 不保留会产生错误字段解释的旧
+raw-tracepoint 降级路径；任一必需探针无法加载时必须显式失败。
 
-## 2. 数据流
+所有场景共享以下不变量：
 
+- `related_object.pid` 始终是 TGID，`tid` 才是线程 ID；系统级结论用 `scope=system`，不伪造 PID。
+- `time_window` 来自 collector 的真实 `ObservationWindow{Start, End, Elapsed}`，不能按名义 1 秒窗口补值。
+- 每个报告必须有稳定的 `root_cause_code`，自然语言只负责解释该代码和证据。
+- collector 初始化、Poll 或健康读取失败必须进入状态输出，不能解释成“未发现异常”。
+- BPF map 只保存有界聚合状态；用户态按真实窗口做差分、检测、归因和符号化。
+
+## 2. 分层数据流
+
+```text
+OS 事件
+  -> tp_btf / fentry / 必要的稳定 tracepoint
+  -> BPF map（按 task/request/device/lock/syscall 聚合）
+  -> collector（真实窗口差分 + /proc 补充）
+  -> detector（阈值 + sustain + 联合条件）
+  -> rca（root_cause_code + evidence_chain）
+  -> JSON session / JSONL / YAML / Markdown
 ```
-sched_switch / sched_wakeup (tracepoint)
-        │  内核态：按 tid 累计 run_ns / runq_ns / ctx
-        ▼
-   stats/oncpu_start maps ──(用户态按 interval 读取 + 差分)──▶  Sample{cpu_util, ctx/min, runq_wait}
-        ▼
-   detector：阈值 + 连续窗口判定  ──▶  Signal
-        ▼
-   rca：规则分类根因 + 组装 evidence_chain  ──▶  AnomalyReport
-        ▼
-   output：JSON / YAML / Markdown
+
+`internal/collector` 负责加载、挂载和读取；`internal/detector` 只判断信号是否满足；
+`internal/rca` 不重新猜测采集事实；`internal/schema` 和 `schemas/*.schema.json` 定义机器接口。
+
+## 3. CPU 与调度
+
+OS 对应关系是“任务被唤醒进入运行队列 -> 等待 CPU -> 被调度运行 -> 切出”。探针使用
+`tp_btf/sched_wakeup`、`sched_wakeup_new`、`sched_switch`，直接读取 `task_struct`、TGID 和
+`preempt`，避免手写 tracepoint 字段布局。
+
+BPF 以 `(tgid, tid)` 累计 `run_ns/runq_ns/runq_count/ctx`。睡眠唤醒和抢占后重新入队都会
+记录 enqueue 时间，因此平均运行队列等待为 `Δrunq_ns / Δrunq_count`，不是除以上下文切换数。
+单次连续运行不少于 5 ms 时采样用户栈，并按 `(tgid, tid, stackid)` 聚合。
+若任务在探针挂载前已经运行且长期不切出，10 Hz per-CPU CPU-clock perf heartbeat 只为缺失的
+`oncpu_start` 补种当前任务；下一次 `sched_switch` 仍负责精确结算。该 heartbeat 的运行次数和
+runtime 一并计入 collector health/性能开销。
+
+用户态按 TGID 汇总所有线程的 `process_cpu_cores`，同时保留最高占用 TID：
+
+| 指标 | 含义 |
+|---|---|
+| `top_thread_cpu_cores` / `cpu_util` | 最热线程占用的 CPU 核数，1.0 约等于一核 |
+| `process_cpu_cores` | 同一进程所有线程核数之和，可大于 1 |
+| `runq_wait_us` | 按真实入队次数计算的平均运行队列等待 |
+| `runq_count` | 本窗口实际入队计数 |
+| `user_hot_stack` | 用户函数名，无法符号化时为 `module+offset` |
+
+最热线程或进程总核数任一持续越过 CPU 阈值即可触发。`cpu.compute_hotspot` 表示计算热点；
+有显著运行队列等待时使用 `cpu.scheduler_pressure`。上下文切换多本身不是锁证据，不再推断
+“锁竞争”；锁归因必须来自同窗的锁报告。
+
+## 4. 块 I/O
+
+OS 对应关系是 block layer request issue 到 complete 的服务时间。探针使用
+`tp_btf/block_rq_issue` 与 `tp_btf/block_rq_complete`，用真实 `struct request *` 作为在途 key，
+不再用 `dev+sector+rwbs` 合成可能碰撞的 key。
+
+request state 保存设备、总字节、已完成字节和首次 issue 时间。partial completion 只累计完成
+字节；确认最终完成后才删除 state、减少 inflight 并结算时延。健康计数公开
+`duplicate_issue/completion_miss/map_update_fail/partial_completion/io_error`，测试结束后还要检查 inflight
+是否回到 0。
+completion 先于 issue 挂载，`startup_boundary_ns` 初始为 0；两者均就绪后才记录单调时钟边界。
+边界前被 issue hook 捕获的 request 仍保留 state 以精确配对，但标为 untracked，不污染会话指标。
+缺失 state 时，只有非零 `request.start_time_ns >= startup_boundary_ns` 才是可证明的运行期
+`completion_miss`；时间戳为 0 的 queue 保守抑制启动歧义，而 post-attach issue 的 map 写失败由
+`map_update_fail` 独立暴露。该协议不依赖写于 issue tracepoint 之后的 `io_start_time_ns`，也不用
+前两个 Poll 的宽松 baseline 掩盖首个完整窗口的数据丢失。
+
+设备 map 用 `bpf_spin_lock` 串行更新 inflight 与 `queue_depth × duration` 面积。用户态以真实窗口
+计算 `avg_queue_depth`，并同时保留窗口结束时的 `queue_depth` gauge。时延直方图的 P99 和最大值
+采用 bucket 上界，避免把整个 bucket 当作精确值。
+
+检测先要求 `p99_lat_ms` 持续越过阈值，再分类：`avg_queue_depth >= 16` 才输出
+`io.queue_congestion`；否则输出 `io.device_latency`。没有文件路径或 cache miss 证据时，不推断
+“热点文件”或“缓存失效”。
+
+## 5. 内存回收与 OOM
+
+direct reclaim 表示分配线程因内存压力同步进入回收路径，是进程贡献证据；PSI 和 vmstat 描述
+系统范围压力。BPF 保留 direct-reclaim begin/end 与 kswapd wake，并增加
+`tp_btf/mark_victim` 作为权威 OOM 事件；用户态读取 `/proc/pressure/memory`、
+`/proc/vmstat`、`/proc/meminfo` 和进程 RSS/fault 的窗口差分。
+
+OOM victim 使用 `mem.oom_victim` 立即触发，不等待 `sustain`。普通 `mem.reclaim_pressure` 必须
+同时满足：
+
+1. 系统压力：`MemAvailable < 15%`（或配置阈值）、PSI some >= 10%、PSI full >= 1%、
+   direct reclaim >= 10 ms/s 中至少一项；
+2. 进程贡献：direct reclaim、匿名 RSS 增长 >= 64 MiB/s、major fault >= 100/s 中至少一项；
+3. 联合条件连续满足 `sustain` 个窗口。
+
+单次 kswapd wake、单次 major fault 和“RSS 最大”只可作为辅助信息，不能独立触发或充当因果
+证据。`--target-pid` 模式仍读取全局压力，但候选 culprit 只能来自目标进程树；root 和每个已准入
+TGID 都绑定进程启动身份：用户态把 `/proc/<pid>/stat` starttime 编码成带最高位标记的 100 Hz
+seed，BPF 用量化后的 group leader `start_boottime` 校验（容许 1 tick），首次命中后升级为精确
+纳秒身份。因而已被 `/proc` 找到的深层后代无需依赖 16 层祖先遍历；PID 复用时旧 exact/seed
+membership 均不会放行不同启动身份。内核侧的有界祖先检查仍负责发现相邻 `/proc` 快照间的
+短生命周期子进程并回传精确身份；目标树内无法定位时输出 `scope=system`。
+
+## 6. futex 与内核同步等待
+
+锁场景先从调度语义区分自愿阻塞和抢占：typed `sched_switch` 的 `preempt` 参数用于排除抢占，
+`sched_wakeup` 只记录最近唤醒者。`fentry/fexit do_futex` 捕获 `(tgid, uaddr, op)`，将调度等待与
+具体 futex 地址关联。
+
+BPF 按 `(tgid, lock_address, stackid, tid)` 聚合等待；用户态再按 `(tgid, lock_address)` 聚合
+等待线程数、累计等待、P99、最大等待和 Top waiters。off-CPU state 同时保存线程精确
+`start_boottime`；重新上 CPU 时必须匹配 TGID、TID 和该身份，TID 被复用时只清旧 state、不串账。
+没有 futex 地址的等待按内核栈归组。
+
+- `lock.futex_contention`：多个线程等待同一非零 `lock_address`；
+- `lock.kernel_sync_wait`：默认只在符号化内核栈命中 mutex/rwsem/flock 等同步路径时输出。
+
+`waker_tid` 仅表示唤醒者，不能称为持锁者。`related_object.pid` 是进程 TGID，`tid` 是 Top waiter；
+`lock_address` 为可选的锁实例标识。
+
+## 7. syscall 热点
+
+`tp_btf/sys_enter/sys_exit` 在 enter map 保存起点，在 exit 结算 `(tgid, syscall_nr)` 的次数、总耗时、
+P99 和最大耗时；起点 map 为 LRU hash，避免退出缺失导致无界占用。仓库内置从 Linux 6.6-era
+`x/sys/unix` 定义生成的完整 amd64 与 asm-generic 表；arm64 使用 generic 编号，riscv64 另处理
+架构专用 slot。未来内核新增或当前 ABI 不存在的号码仍保留为 `syscall_<nr>` 和 `syscall_nr`，
+不能跨 ABI 套用编号。
+
+等待型 syscall（例如 `epoll_wait/poll/futex/nanosleep`）只有高频时才触发，正常长时间阻塞不是
+异常；非等待型 syscall 可由高频或累计耗时触发。根因代码为 `syscall.high_frequency` 或
+`syscall.high_latency`。`--target-pid` 可过滤目标树，但正式准确率主测试必须使用全局默认产品
+配置，不能靠 target 或正例专用阈值抬高结果。
+
+## 8. 输出、生命周期与聚合
+
+- `--format json`：结束时输出唯一一个 `DiagnosticSession`，包含环境、公开阈值、collector 状态、
+  `partial` 和聚合后的 `reports[]`；即使无异常也是合法会话，而不是空文件。
+- `--format jsonl`：实时逐行输出紧凑 `AnomalyReport`，用于在线消费。
+- YAML/Markdown 保持逐报告输出；`--report` 仍生成 Markdown 汇总报告。
+- `--allow-partial=false` 是默认值。`all` 先初始化全部五个 collector 再采集；初始化或 Poll 失败
+  立即返回非零。仅显式 `--allow-partial` 才可继续，并在 session 中将失败 collector 与
+  `partial=true` 写清楚。
+
+collector 健康快照包括 BPF `program_runtime_ns/program_run_count/map_memory_bytes` 和场景健康计数；
+health 读取失败、map update 数据丢失或未匹配 I/O completion 会把 collector 置为失败，Markdown
+不得把这种零报告写成“未发现异常”。incident
+聚合 key 包含 `root_cause_code`，只合并重叠/相邻的同根因窗口；时间断开或根因变化必须保留为
+不同 incident。JSON/JSONL 在写出前通过严格 schema 校验，不跳过损坏对象。
+
+`rca-report-compact` 可对合法旧 JSONL 或 `DiagnosticSession` 再做同一 incident 聚合；输入是 session
+时会保留 envelope 和 collector 状态。复现脚本可把聚合前 artifact 放在 `outputs/repro/raw/`，但
+compact 失败必须非零退出，不能把损坏 raw 文件复制成“最终合法 JSON”。
+
+稳定根因代码全集：
+
+```text
+cpu.compute_hotspot       cpu.scheduler_pressure
+io.queue_congestion       io.device_latency
+mem.reclaim_pressure      mem.oom_victim
+lock.futex_contention     lock.kernel_sync_wait
+syscall.high_frequency    syscall.high_latency
 ```
 
-## 3. 场景①的指标计算
+## 9. 限制与维护
 
-| 指标 | 来源 | 计算 |
-|---|---|---|
-| `cpu_util` | `run_ns` 差分 + 当前 on-CPU 补偿 | `Δrun_ns / interval_ns`，1.0 ≈ 占满一核 |
-| `ctx_switch_per_min` | `ctx` 差分 | `Δctx / interval_min` |
-| `runq_wait_us` | `runq_ns`、`ctx` 差分 | `Δrunq_ns / Δctx / 1000` |
-
-## 4. 根因分类规则（场景①）
-
-- `cpu_util ≥ 阈值` 且 `ctx_switch_per_min` 低 → "用户态计算热点导致 CPU 饱和（计算密集 / busy loop）"
-- `cpu_util ≥ 阈值` 且 `ctx_switch_per_min` 高(≥5万/分) → "频繁上下文切换，疑似锁竞争/频繁唤醒"
-
-措辞对齐赛题"参考根因"词表，以契合"根因定位正确率"评分。
-
-## 4a. 场景②：I/O 延迟抖动（块层时延）
-
-在 `block_rq_issue` 记录请求起点并使队列深度 +1；当前 tracepoint 不暴露 request 指针，
-因此 key 使用 `dev+sector+nr_sector+rwbs`，比单纯 `dev+sector` 更不易冲突，但仍不是绝对唯一。
-在 `block_rq_complete` 命中起点后才结算时延并使队列深度 -1；未命中不扣队列深度，避免负数。
-时延进入 log2(ns) 直方图，用户态按窗口差分估算 P99 和窗口最大值。
-
-| 证据 | 来源 | 含义 |
-|---|---|---|
-| `iops` | `count` 差分 / 窗口 | 每秒完成请求数 |
-| `avg_lat_ms` | `total_lat_ns`/`count` 差分 | 平均完成时延 |
-| `p99_lat_ms` | `slots[]` 直方图差分 | P99 完成时延(取槽位上界 2^slot) |
-| `max_lat_ms` | `slots[]` 直方图差分 | 窗口内最大完成时延估算值(槽位上界) |
-| `throughput_mbps` | `bytes` 差分 / 窗口 | 吞吐 |
-| `queue_depth` | `inflight` gauge | 当前在途请求数 |
-
-根因判定：队列深度高(≥16) → "设备队列拥堵(队列过深)"；否则 → "访问集中/缓存失效"。
-关联对象记为块设备(`major:minor name`，经 /proc/partitions 解析)。
-> 提示：tracepoint 字段偏移随内核版本可能变化，必要时按 `events/block/block_rq_issue/format` 校正。
-
-## 4b. 场景③：内存抖动 / 回收压力
-
-核心信号是**直接回收(direct reclaim)**：进程分配内存时若内存不足会被迫同步回收，
-危害最大。`mm_vmscan_direct_reclaim_begin/end` 按线程(tid)记录 begin，再按进程(tgid)
-聚合直接回收次数与耗时，避免同进程多线程 begin 覆盖；`mm_vmscan_kswapd_wake` 统计后台回收唤醒。这些 tracepoint 跨架构、
-字段无关，开销极低。可用内存与 per-process 缺页由用户态读 /proc 补充（避免高频 kprobe）。
-
-| 证据 | 来源 | 含义 |
-|---|---|---|
-| `mem_available_pct` | /proc/meminfo | 可用内存占比 |
-| `kswapd_wakes` | `mm_vmscan_kswapd_wake` 差分 | 后台回收活跃度 |
-| `direct_reclaim_count` | direct_reclaim 差分 | 肇事进程直接回收次数 |
-| `direct_reclaim_ms` | begin/end 配对 | 直接回收耗时 |
-| `major_fault`/`minor_fault` | /proc/<pid>/stat 差分 | 缺页增量 |
-| `rss_kb`/`anon_rss_kb` | /proc/<pid>/status | RSS/匿名 RSS 采样 |
-| `rss_delta_kb`/`anon_rss_delta_kb` | /proc 快照差分 | 窗口内 RSS/匿名 RSS 增长 |
-
-触发条件不是只看低 `MemAvailablePct`：低可用内存、`kswapd_wakes`、direct reclaim、
-major fault、RSS/AnonRSS 快速增长任一强信号成立即可进入连续窗口判定。
-根因归因优先级为 direct reclaim > major fault > RSS/AnonRSS 增长 > 最大 RSS > 系统级压力。
-仍无明确对象时输出系统级低内存/OOM 风险，不伪造 pid=0 culprit。
-**这是一个混合采集的刻意设计**：eBPF 抓因果事件(谁触发回收)，/proc 补系统上下文。
-
-## 4c. 场景④：锁竞争（off-CPU + 唤醒链）
-
-核心是 **off-CPU 阻塞归因**：在 `sched_switch` 中，当 `prev_state != 0`（被阻塞切出，
-而非被抢占）时记录起点并抓取内核栈；线程重新上 CPU 时结算阻塞时长，按线程累计
-off-CPU 阻塞时间/次数/最大值与阻塞栈 id。`sched_wakeup` 记录唤醒者，构成
-**waker→wakee 唤醒链**，定位疑似持锁方。`--target-pid` 非 0 时，用户态会周期性解析
-目标 root pid 的子进程树，并让内核态只记录这些 tgid 的 off-CPU 起点与对应唤醒事件，
-用于降低背景线程正常等待带来的噪声。
-
-| 证据 | 来源 | 含义 |
-|---|---|---|
-| `offcpu_ratio` | `offcpu_ns` 差分 / 窗口 | 阻塞型 off-CPU 占墙钟比例 |
-| `max_offcpu_ms` | 阻塞时长直方图差分 | 窗口内最长阻塞估算值(槽位上界) |
-| `block_count` | `offcpu_count` 差分 | 窗口内阻塞次数 |
-| `last_waker_tid` | `sched_wakeup` current | 唤醒链上游(疑似持锁方) |
-| 阻塞栈帧 | `stackmap` + /proc/kallsyms 符号化 | "线程堆栈聚集"证据 |
-| `stack_status` | 用户态符号解析状态 | 栈是否成功符号化 |
-
-根因判定：阻塞栈含 `futex/mutex/rwsem/down_/__lock/flock/locks_/filelock/posix_lock`
-等锁/同步符号 → 判为"锁竞争"，否则判为"长时间阻塞等待"（疑似 I/O / 同步等待）。
-默认只输出命中锁/同步符号的样本；`--lock-include-blocking` 可保留普通长阻塞，
-`--lock-topn` 控制每个窗口输出的 Top-N 阻塞线程。符号化在用户态完成，内核态零额外上送。
-
-## 4d. 场景⑤：系统调用热点（差异化项）
-
-`raw_syscalls:sys_enter/sys_exit` 是通用 syscall tracepoint，跨 ABI 可移植。enter 记起点，
-exit 结算单次耗时，按 `(进程, syscall号)` 累计次数/总耗时/最大耗时；syscall 号→名在
-用户态按架构(amd64 专用表 / asm-generic 表)解析。可通过 `--target-pid` 只观测指定
-root pid 及其子进程树，降低 `raw_syscalls` 全局挂载带来的开销。
-
-| 证据 | 来源 | 含义 |
-|---|---|---|
-| `syscall` | nr→名解析 | 热点系统调用 |
-| `calls_per_sec` | `count` 差分 | 调用频次 |
-| `avg_lat_us` / `max_lat_us` | `total_ns`/`count`、直方图差分 | 单次耗时 / 窗口最大耗时估算值 |
-| `total_ms_per_sec` | `total_ns` 差分 | 累计耗时占比 |
-| `syscall_nr` | raw syscall id | 跨架构名称表缺失时的原始证据 |
-| `target_pid` | CLI 配置 | 进程树过滤 root pid；0 表示全局 |
-
-根因判定：等待型 syscall（如 `epoll_wait/poll/futex/nanosleep`）只在 calls/s 过高时报告，
-表示短 timeout 轮询或唤醒风暴；非等待型 syscall 可由频次 ≥ 阈值 **或** 累计耗时
-≥ 300ms/秒触发。单次平均耗时 ≥1ms 时判为"高耗时热点(阻塞型，如 fsync/慢 I/O)"，
-否则判为"高频热点(忙轮询/未批处理)"。工具默认过滤 `comm=ebpf-rca` 自身。
-> 注意：raw_syscalls 触发极频繁，是开销最高的场景；生产建议用 `--target-pid` 过滤目标进程。
-
-## 5. 后续场景接入约定
-
-每个新场景实现：
-1. `bpf/<scene>.bpf.c`：采集探针，内核态聚合关键证据点。
-2. `internal/collector/<scene>.go`：加载/读取，产出 `Sample`。
-3. `internal/detector/<scene>.go`：异常判定，产出 `Signal`。
-4. `internal/rca`：`Build<Scene>Report`，组装根因与证据链。
-
-所有场景复用同一 `schema.AnomalyReport`，保证结构化输出一致、机器可解析。
-
-## 6. 限制与权限
-
-- 需 root 或 `CAP_BPF` / `CAP_PERFMON` / `CAP_SYS_ADMIN`。
-- 依赖内核 BTF（CO-RE）；老内核缺 BTF 时需外置 BTF 或降级处理。
-- CPU/锁场景的 `pid` 当前实为 tid；进程级/cgroup/container 聚合为后续工作。
-- I/O key 在 tracepoint 无 request 指针时不是绝对唯一；高并发同扇区请求仍可能冲突。
-- syscall 名表是常见子集；未知项以 `syscall_<nr>` 展示，并保留 `syscall_nr`。
-
-## 7. 技术文档维护
-
-- CLI、默认阈值、输出字段、BPF map、挂载点或复现脚本变化时，必须同步更新 `README.md`、`docs/testing.md` 和本设计文档。
-- `README.md` 只放快速开始、参数表、输出示例和已知限制；实现细节放在本文件；openKylin 踩坑放在 `docs/troubleshooting.md`。
-- 每次提交前运行 `make docs-check`，用真实 `--help` 输出反查 README，避免参数漂移。
-- 示例输出应来自固定 mock report 或实际工具输出，不手写无法复核的字段。
+- 需要 root 或等价的 `CAP_BPF/CAP_PERFMON/CAP_SYS_ADMIN`；部分系统还需调整 memlock。
+- 本轮没有真实 cgroup/container 聚合、插件系统或 RISC-V 实机验收；容器只能借助 host PID
+  namespace 做宿主级进程归因。
+- amd64/arm64 都必须在目标 openKylin 主机完成 clean build、五场景 E2E、30 分钟 all-mode soak
+  与性能测试；“能编译”不等于平台已验收。
+- CLI、schema、探针、map 或评测口径变化时，同步更新 README、本文、测试文档和技术报告；提交前
+  运行 `make docs-check`，示例必须来自可校验 artifact。

@@ -23,5 +23,5 @@
       }
     }
   ],
-  "truth_summary": "root_pid=120137 tgids=[120137,120139,120152,120153] tids=[120137,120139,120146,120152,120153] comms=[bash,fio] io_device=8:0"
+  "truth_summary": "root_pid=83885 tgids=[83885,83888,83900,83901] tids=[83885,83888,83893,83900,83901] comms=[bash,fio] io_device=8:0"
 }

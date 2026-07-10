@@ -1,96 +1,128 @@
-# ebpf-rca 工具开销评测体系
+# ebpf-rca 严格性能开销基准
 
-本文件用于支撑技术报告第 4.2 节“性能开销基准”，并记录评分验收脚本的实际运行方式与当前实测结果。
+性能结论的核心不变量是：比较同一 workload 的真实工作量，不用固定 timeout 的墙钟时间冒充
+吞吐；同时计入用户态和 BPF 内核态资源。当前文档定义方法，不预填未经新口径复跑的数字。
 
-## 1. 评测目标
+## 1. 配对实验设计
 
-评分细则里与开销相关的分项包括 CPU 开销、内存开销、时延影响、吞吐影响；同时，性能评测脚本还能复用到复现脚本、测试说明、文档完整性等工程质量分项。我们的目标不是只说“低开销”，而是给出可复核的数字证据。
-
-## 2. 实验设计
-
-采用两态对照法：
+每个 case 做至少 5 个配对轮次：
 
 ```text
-baseline：不加载 ebpf-rca，只运行异常注入负载
-with_tool：先加载 ebpf-rca，再运行同样异常注入负载
+baseline  = 只运行 workload
+with_tool = 同一 workload + 一个 ebpf-rca 实例
 ```
 
-`bench_overhead.sh` 不调用 `scripts/repro_*.sh`，因为这些演示脚本本身会启动 `ebpf-rca`。benchmark 内置纯 workload，保证 baseline 只跑负载，with_tool 只额外启动一个工具实例。脚本会用 `ps` 周期采样工具进程 CPU/RSS；在 sudo/root 场景下按子进程 PID 采样，避免资源数据为空。
+奇数轮 baseline 先跑，偶数轮 with-tool 先跑，以减弱 cache 温度、后台抖动和设备状态随时间
+漂移造成的顺序偏差。两相之间有 cooldown，工具在 workload 前 warmup，并在结束后保留 margin
+写出完整 `DiagnosticSession`。缺失任一相、工具非零退出、session partial 或指标无法解析都会让
+整次汇总失败。
 
-每个场景至少重复 3 次，取平均值，保留原始日志。当前测试场景覆盖：
+基准汇总在读取 collector health 前复用 `scripts/validate_report.py` 的严格 session 校验：重复键、
+未知/缺失字段、非有限数以及时间、collector 生命周期和报告语义错误都会使证据失效；不会先从
+部分合法的 JSON 中提取开销数据。
 
-| 场景 | benchmark 负载 | 主要关注指标 |
+`--scenario all` 运行 6 个 case：五个单 collector case 加一个 combined all-mode case。单场景
+case 用于归因每类探针成本；combined case 同时运行 CPU、内存、锁、syscall stressor 与 fio，验证
+五 collector 并发时的资源上界。
+
+## 2. Workload 与观测指标
+
+| case | workload | baseline/with-tool 都必须解析的指标 |
 |---|---|---|
-| cpu | `stress-ng --cpu ... matrixprod` | 工具 CPU%、RSS、负载耗时增幅 |
-| io | `fio randrw` | IOPS、平均/P99 时延、吞吐、队列深度 |
-| mem | `stress-ng --vm` | 工具 RSS、direct reclaim 诊断稳定性 |
-| lock | `stress-ng --mutex` 或 `--futex` | off-CPU 阻塞证据、工具 CPU/RSS |
-| syscall | `dd bs=1` 高频 read/write | 高频 syscall 诊断、事件量较大时的开销 |
+| CPU | `stress-ng --cpu ... matrixprod --metrics-brief` | bogo ops、bogo ops/s |
+| I/O | fio direct randrw | IOPS、带宽、P99 completion latency |
+| 内存 | `stress-ng --vm ... --metrics-brief` | bogo ops、bogo ops/s |
+| 锁 | `stress-ng --mutex ... --metrics-brief` | bogo ops、bogo ops/s |
+| syscall | `stress-ng --syscall ... --metrics-brief` | bogo ops、bogo ops/s |
+| all | 上述 stressor + fio 并发 | 汇总 bogo ops/s + IOPS/带宽/P99 |
 
-## 3. 一键运行
+fio 固定关键参数：
 
-前提：当前环境需要 root，或可非交互执行 `sudo -n`。如果进程被设置 `no_new_privs`，或缺少 `CAP_BPF/CAP_PERFMON/CAP_SYS_RESOURCE`，脚本会快速失败，不再白跑 workload。
-
-```bash
-# 1. 环境检查，生成 outputs/env/env_report.md
-sudo -n bash scripts/env_check.sh
-
-# 2. 五类场景复现，生成 outputs/repro/*.json
-bash scripts/run_all_repro.sh --duration 60 --format json
-
-# 3. 工具开销 benchmark，生成 outputs/bench/bench.md
-bash scripts/bench_overhead.sh --scenario all --duration 60 --repeat 3 --out outputs/bench
-
-# 4. 结构化输出校验，生成 outputs/validation/schema_check.md
-python3 scripts/validate_report.py outputs/repro/*.json outputs/bench/tool_output/*.json
+```text
+--direct=1 --ioengine=libaio --iodepth=64 --numjobs=4 --output-format=json
 ```
 
-Makefile 已内置评分产物生成目标：
+测试文件必须位于真实块设备文件系统。脚本从 fio JSON 解析 read/write IOPS、`bw_bytes` 和最接近
+99.0 的 latency percentile；非正数、缺字段或非有限值均失败。stress-ng 同样要求真实 metrics
+行和正 bogo 值，不把“进程运行了 60 秒”当作有效测量。
 
-```bash
-make env-check
-make repro-all
-make bench-full
-make validate-output
-make report-artifacts
+## 3. 开销定义
+
+设 baseline 吞吐为 `B`、with-tool 吞吐为 `T`，baseline/with-tool P99 为 `L0/L1`：
+
+```text
+吞吐下降(%) = (B - T) / B * 100
+P99 增幅(%) = (L1 - L0) / L0 * 100
 ```
 
-## 4. 输出文件说明
+负下降或负增幅原样保留，不能截成 0 或用其宣称工具“加速”了负载；它通常反映实验噪声，需结合
+多轮均值和离散程度解释。
 
-| 路径 | 用途 |
+资源口径：
+
+- 用户态 CPU：`/proc/<pid>/stat` 的 `utime+stime` 差分 / 采样墙钟时间；
+- BPF CPU：session 内全部 collector 的 `program_runtime_ns / workload_elapsed_ns`；runtime 覆盖 warmup、workload 与 drain，并全部保守计入 workload 时长，避免用空闲尾段稀释；
+- 合计 CPU：用户态 CPU% + BPF CPU%；BPF `program_run_count` 同时保留用于解释事件量；
+- 用户态内存：`VmRSS/VmHWM` 的峰值；
+- BPF 内存：collector health 的全部 `map_memory_bytes` 之和；`counters.map_memory_estimated=0`
+  表示每个 map 都来自 fdinfo memlock 精确值；
+- 合计内存：工具进程峰值 RSS + BPF map memory。
+
+`DiagnosticSession.collectors[]` 必须全部 `initialized=true,state=stopped`，没有 `health_error`，且
+runtime/run-count/map-memory 为有效值。collector 失败绝不能解释为开销为零。内核不暴露 fdinfo
+memlock 时，health 仍可用逻辑容量回退做运行观测，但会置
+`counters.map_memory_estimated=1`；正式基准直接拒绝该证据，不能用估算值验收 64 MiB 目标。
+
+## 4. 一键运行
+
+```bash
+cd ebpf-rca
+make build
+bash scripts/bench_overhead.sh \
+  --scenario all --duration 60 --repeat 5 --out outputs/bench
+```
+
+默认需要可非交互 `sudo -n`；root 环境自动省略 sudo。脚本严格要求 `repeat >= 5`。正式平台证据
+建议通过统一入口生成：
+
+```bash
+bash scripts/platform_acceptance.sh \
+  --soak-duration 30m --accuracy-repeat 10 --bench-repeat 5
+```
+
+## 5. 产物与复核
+
+| 路径 | 内容 |
 |---|---|
-| `outputs/env/env_report.md` | 运行环境、多平台适配证据 |
-| `outputs/repro/repro_summary.md` | 五类异常复现结果汇总 |
-| `outputs/repro/*_report.json` | 每类异常的结构化输出样例 |
-| `outputs/bench/bench.md` | 性能开销总表，可直接贴进技术报告 |
-| `outputs/bench/bench_summary.csv` | 原始汇总数据，便于画图或复核 |
-| `outputs/bench/resource/*.csv` | 工具进程 CPU/RSS 逐秒采样 |
-| `outputs/bench/tool_output/*.json` | benchmark 阶段每轮工具 JSON 输出 |
-| `outputs/validation/schema_check.md` | 输出 schema 与证据链质量检查 |
+| `outputs/bench/bench_runs.tsv` | 每个 phase 的状态、顺序与原始文件索引 |
+| `outputs/bench/raw/*` | stress-ng 日志、fio JSON/stderr、解析后的 workload metrics、工具日志 |
+| `outputs/bench/tool_sessions/*_session.json` | with-tool 严格 `DiagnosticSession` 与 collector health |
+| `outputs/bench/resource/*_process.csv` | `/proc` CPU/RSS/HWM 采样 |
+| `outputs/bench/bench_summary.csv` | 每个配对轮次的原始派生指标 |
+| `outputs/bench/bench_summary.json` | 方法、数据错误、case 汇总与目标判定 |
+| `outputs/bench/bench.md` | 从同一结构化结果生成的阅读版表格 |
 
-## 5. 技术报告可用表格
+复核顺序：先检查 `bench_summary.json.valid=true`、`errors=[]` 和 `acceptance_pass=true`，再检查轮数与奇偶顺序，最后从
+TSV 追溯任一汇总单元格到 workload JSON、session 和 process CSV。platform bundle 还会记录命令、
+环境和 `SHA256SUMS`，避免只提交可修改的汇总表。
 
-2026-07-08 在 openKylin 2.0 SP2、Kernel 6.6.0-22-generic、x86_64 上的实测结果如下；原始表见 `outputs/bench/bench.md`。
+## 6. 验收目标与结论边界
 
-| 场景 | 基线平均耗时(s) | 加载后平均耗时(s) | 平均变慢% | 工具平均CPU% | 工具峰值CPU% | 工具平均RSS(MB) | 工具峰值RSS(MB) | JSON有效/运行数 | 最小证据链长度 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| cpu | 60.013 | 60.013 | 0.000% | 0.038% | 0.100% | 8.807 | 10.656 | 3/3 | 3 |
-| io | 61.816 | 61.930 | 0.183% | 0.000% | 0.000% | 5.598 | 5.660 | 3/3 | 6 |
-| mem | 60.134 | 60.139 | 0.008% | 1.143% | 1.600% | 9.800 | 10.852 | 3/3 | 10 |
-| lock | 60.015 | 60.020 | 0.008% | 0.613% | 3.600% | 43.035 | 51.371 | 3/3 | 13 |
-| syscall | 60.004 | 60.004 | 0.000% | 0.433% | 0.600% | 10.093 | 10.785 | 3/3 | 7 |
+- 吞吐下降 <= 5%；
+- fio P99 增幅 <= 5%；
+- combined all-mode 合计内存 <= 64 MiB；
+- x86_64 与 ARM64 分别完成同一套至少 5 轮配对测试。
 
-## 6. 满分答辩口径
+脚本在证据无效或任一目标失败时都返回非零。只有新 bundle 的结构化汇总 `valid=true`、
+`acceptance_pass=true` 且目标通过时，技术报告才能写“满足开销目标”，并应同时
+给出均值、轮数、平台和原始证据路径。2026-07-09 及更早的三轮表没有 BPF runtime/map memory、
+交替顺序和 combined all-mode 证据，不能支持“低开销”结论。
 
-> 我们对每类异常都做了 baseline 和 with_tool 两态对照，并重复多轮。评测不只看工具进程自身 CPU 和 RSS，也看负载耗时、I/O P99、吞吐等端到端影响。所有原始日志、资源采样 CSV、工具 JSON 输出和结构化校验报告都随仓库提交，评委可以直接复现。因此“低开销”不是口头描述，而是可验证数据。
+## 7. 优化检查清单
 
-## 7. 开销优化检查清单
-
-- eBPF 程序内核态只做聚合，不逐事件全量上送。
-- 用户态按采样窗口差分，避免高频轮询。
-- `--scenario` 按需开启探针，避免默认全量探针。
-- `--interval`、`--threshold`、`--sustain` 可配置，平衡灵敏度与开销。
-- map 大小设置上限，避免长时间运行内存膨胀。
-- 调用栈、符号化、Markdown 渲染等重操作只在异常确认后执行。
-- benchmark 保留平均值与峰值，不只报最好看的单次结果。
-- `outputs/` 下的 CSV/JSON/Markdown 是评测产物；源码提交可只保留 `.gitkeep`，答辩材料则应保留本次实测产物。
+- map 有明确容量和失败健康计数，长时间运行后无不可解释增长；
+- 内核态只聚合必要状态，不逐事件上送；用户态使用真实 elapsed 做窗口差分；
+- syscall enter 使用 LRU map；I/O partial completion 最终能清空 request state；
+- 只有需要的场景才加载对应 collector，另用 combined all case 测最坏组合；
+- 栈解析与 Markdown 渲染留在用户态，异常确认后再做；
+- 报告平均值之外保留每轮数据、顺序、峰值与失败样本，不挑选最好看的单次结果。

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-08T09:21:16Z",
+  "generated_at": "2026-07-09T12:23:35Z",
   "kernel": "6.6.0-22-generic",
   "arch": "x86_64",
   "workload": "stress",
@@ -34,7 +34,7 @@
       "recall": 100.0,
       "false_positive_rate": null,
       "avg_extra_reports": 0.0,
-      "avg_report_count": 5.333333333333333
+      "avg_report_count": 4.333333333333333
     },
     {
       "scenario": "idle_cpu",

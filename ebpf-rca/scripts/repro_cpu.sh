@@ -19,10 +19,24 @@ fi
 echo "[repro] 启动 ebpf-rca（后台）..."
 sudo "$BIN" --interval 1s --threshold 0.90 --sustain 3 --format md --duration "${DUR}s" &
 RCA_PID=$!
+cleanup() {
+	if kill -0 "$RCA_PID" 2>/dev/null; then
+		if kill "$RCA_PID" 2>/dev/null; then :; fi
+	fi
+}
+trap cleanup EXIT
 
 sleep 2
 echo "[repro] 注入 CPU 负载（官方脚本）..."
-"$STRESS_NG" --cpu 4 --cpu-method matrixprod --timeout "${DUR}s" --metrics-brief || true
+set +e
+"$STRESS_NG" --cpu 4 --cpu-method matrixprod --timeout "${DUR}s" --metrics-brief
+WORKLOAD_RC=$?
+wait "$RCA_PID" 2>/dev/null
+TOOL_RC=$?
+set -e
 
-wait "$RCA_PID" 2>/dev/null || true
+if [ "$WORKLOAD_RC" -ne 0 ] || [ "$TOOL_RC" -ne 0 ]; then
+	echo "[repro] 失败：workload=$WORKLOAD_RC tool=$TOOL_RC" >&2
+	exit 1
+fi
 echo "[repro] 完成。"

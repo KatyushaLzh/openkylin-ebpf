@@ -2,11 +2,11 @@
   "scenario": "lock",
   "kind": "positive",
   "passed": true,
-  "report_count": 59,
+  "report_count": 58,
   "matched_anomaly_type": "锁竞争",
   "matched_object": {
-    "pid": 121046,
-    "tid": 121046,
+    "pid": 84867,
+    "tid": 84867,
     "comm": "stress-ng-futex"
   },
   "matched_reports": [
@@ -14,8 +14,8 @@
       "index": 1,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -23,8 +23,8 @@
       "index": 2,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -32,8 +32,8 @@
       "index": 3,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     },
@@ -41,8 +41,8 @@
       "index": 4,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -50,8 +50,8 @@
       "index": 5,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -59,8 +59,8 @@
       "index": 6,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -68,8 +68,8 @@
       "index": 7,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84871,
+        "tid": 84871,
         "comm": "stress-ng-futex"
       }
     },
@@ -77,8 +77,8 @@
       "index": 8,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     },
@@ -86,8 +86,8 @@
       "index": 9,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -95,8 +95,8 @@
       "index": 10,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -104,8 +104,8 @@
       "index": 11,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -113,8 +113,8 @@
       "index": 12,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -122,8 +122,8 @@
       "index": 13,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -131,8 +131,8 @@
       "index": 14,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -140,8 +140,8 @@
       "index": 15,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -149,8 +149,8 @@
       "index": 16,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -158,8 +158,8 @@
       "index": 17,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -167,8 +167,8 @@
       "index": 18,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -176,8 +176,8 @@
       "index": 19,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -185,8 +185,8 @@
       "index": 20,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -194,8 +194,8 @@
       "index": 21,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -203,8 +203,8 @@
       "index": 22,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -212,8 +212,8 @@
       "index": 23,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -221,8 +221,8 @@
       "index": 24,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -230,8 +230,8 @@
       "index": 25,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -239,8 +239,8 @@
       "index": 26,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -248,8 +248,8 @@
       "index": 27,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84871,
+        "tid": 84871,
         "comm": "stress-ng-futex"
       }
     },
@@ -257,8 +257,8 @@
       "index": 28,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -266,8 +266,8 @@
       "index": 29,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -275,8 +275,8 @@
       "index": 30,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -284,8 +284,8 @@
       "index": 31,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -293,8 +293,8 @@
       "index": 32,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -302,8 +302,8 @@
       "index": 33,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -311,8 +311,8 @@
       "index": 34,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84871,
+        "tid": 84871,
         "comm": "stress-ng-futex"
       }
     },
@@ -320,8 +320,8 @@
       "index": 35,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -329,8 +329,8 @@
       "index": 36,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -338,8 +338,8 @@
       "index": 37,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -347,8 +347,8 @@
       "index": 38,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -356,8 +356,8 @@
       "index": 39,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     },
@@ -365,8 +365,8 @@
       "index": 40,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -374,8 +374,8 @@
       "index": 41,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -383,8 +383,8 @@
       "index": 42,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     },
@@ -392,8 +392,8 @@
       "index": 43,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -401,8 +401,8 @@
       "index": 44,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -410,8 +410,8 @@
       "index": 45,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84871,
+        "tid": 84871,
         "comm": "stress-ng-futex"
       }
     },
@@ -419,8 +419,8 @@
       "index": 46,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121049,
-        "tid": 121049,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -428,8 +428,8 @@
       "index": 47,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -437,8 +437,8 @@
       "index": 48,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -446,8 +446,8 @@
       "index": 49,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -455,8 +455,8 @@
       "index": 50,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121048,
-        "tid": 121048,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -464,8 +464,8 @@
       "index": 51,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84870,
+        "tid": 84870,
         "comm": "stress-ng-futex"
       }
     },
@@ -473,8 +473,8 @@
       "index": 52,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121045,
-        "tid": 121045,
+        "pid": 84868,
+        "tid": 84868,
         "comm": "stress-ng-futex"
       }
     },
@@ -482,8 +482,8 @@
       "index": 53,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     },
@@ -491,8 +491,8 @@
       "index": 54,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
+        "pid": 84872,
+        "tid": 84872,
         "comm": "stress-ng-futex"
       }
     },
@@ -500,8 +500,8 @@
       "index": 55,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121052,
-        "tid": 121052,
+        "pid": 84867,
+        "tid": 84867,
         "comm": "stress-ng-futex"
       }
     },
@@ -509,8 +509,8 @@
       "index": 56,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121051,
-        "tid": 121051,
+        "pid": 84869,
+        "tid": 84869,
         "comm": "stress-ng-futex"
       }
     },
@@ -518,8 +518,8 @@
       "index": 57,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121047,
-        "tid": 121047,
+        "pid": 84874,
+        "tid": 84874,
         "comm": "stress-ng-futex"
       }
     },
@@ -527,20 +527,11 @@
       "index": 58,
       "anomaly_type": "锁竞争",
       "object": {
-        "pid": 121046,
-        "tid": 121046,
-        "comm": "stress-ng-futex"
-      }
-    },
-    {
-      "index": 59,
-      "anomaly_type": "锁竞争",
-      "object": {
-        "pid": 121050,
-        "tid": 121050,
+        "pid": 84873,
+        "tid": 84873,
         "comm": "stress-ng-futex"
       }
     }
   ],
-  "truth_summary": "root_pid=121026 tgids=[121026,121028,121036,121037,121038,121039,121040,121041,121042,121043,121044,121045,...(+7)] tids=[121026,121028,121036,121037,121038,121039,121040,121041,121042,121043,121044,121045,...(+7)] comms=[bash,stress-ng,stress-ng-futex]"
+  "truth_summary": "root_pid=84842 tgids=[84842,84852,84853,84854,84855,84856,84857,84858,84859,84860,84867,84868,...(+6)] tids=[84842,84852,84853,84854,84855,84856,84857,84858,84859,84860,84867,84868,...(+6)] comms=[bash,stress-ng,stress-ng-futex]"
 }

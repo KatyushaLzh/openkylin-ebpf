@@ -1,28 +1,23 @@
 // Package detector 对采样指标做时序异常判定。
 //
-// 当前实现采用"持续高占用"规则（阈值 + 连续窗口数），保证零幻觉、可解释。
+// 当前实现采用"持续高占用"规则（阈值 + 连续窗口数），保持判定可复核。
 // 后续可在此扩展 EWMA / 3-sigma / Spectral Residual 等检测算法。
 package detector
 
-import (
-	"time"
-
-	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
-)
+import "github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 
 // Signal 表示一次已确认的异常信号。
 type Signal struct {
-	Sample      collector.Sample
-	WindowStart time.Time
-	WindowEnd   time.Time
+	Sample collector.Sample
+	Window collector.ObservationWindow
 }
 
-// CPUDetector 检测持续的高 CPU 占用线程。
+// CPUDetector detects either one hot TID or process-wide CPU saturation.
 type CPUDetector struct {
-	Threshold    float64 // CPU 占用阈值（单核占比）
+	Threshold    float64 // cores: applies to max(hottest TID, process sum)
 	SustainTicks int     // 连续超过阈值多少个窗口才触发
 	counters     map[uint32]int
-	firstSeen    map[uint32]time.Time
+	firstSeen    map[uint32]collector.ObservationWindow
 	fired        map[uint32]bool
 }
 
@@ -35,32 +30,28 @@ func NewCPUDetector(threshold float64, sustain int) *CPUDetector {
 		Threshold:    threshold,
 		SustainTicks: sustain,
 		counters:     make(map[uint32]int),
-		firstSeen:    make(map[uint32]time.Time),
+		firstSeen:    make(map[uint32]collector.ObservationWindow),
 		fired:        make(map[uint32]bool),
 	}
 }
 
 // Detect 处理一个窗口的样本，返回本窗口新触发的异常信号。
-func (d *CPUDetector) Detect(samples []collector.Sample, now time.Time) []Signal {
+func (d *CPUDetector) Detect(samples []collector.Sample) []Signal {
 	active := make(map[uint32]bool, len(samples))
 	var signals []Signal
 
 	for _, s := range samples {
-		if s.CPUUtil < d.Threshold {
+		if !s.Window.Valid() || maxFloat(s.CPUUtil, s.ProcessCPUCores) < d.Threshold {
 			continue
 		}
 		active[s.Pid] = true
 		if d.counters[s.Pid] == 0 {
-			d.firstSeen[s.Pid] = now
+			d.firstSeen[s.Pid] = s.Window
 		}
 		d.counters[s.Pid]++
 		if d.counters[s.Pid] >= d.SustainTicks && !d.fired[s.Pid] {
 			d.fired[s.Pid] = true
-			signals = append(signals, Signal{
-				Sample:      s,
-				WindowStart: d.firstSeen[s.Pid],
-				WindowEnd:   now,
-			})
+			signals = append(signals, Signal{Sample: s, Window: d.firstSeen[s.Pid].Extend(s.Window)})
 		}
 	}
 
@@ -73,4 +64,11 @@ func (d *CPUDetector) Detect(samples []collector.Sample, now time.Time) []Signal
 		}
 	}
 	return signals
+}
+
+func maxFloat(a, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
 }

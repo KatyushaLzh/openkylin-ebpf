@@ -16,8 +16,7 @@ func TestCPUReportUsesRuntimeThreshold(t *testing.T) {
 			Comm:    "hot",
 			CPUUtil: 0.88,
 		},
-		WindowStart: time.Unix(1, 0),
-		WindowEnd:   time.Unix(2, 0),
+		Window: rcaTestWindow(),
 	}, threshold)
 	if len(report.EvidenceChain) == 0 {
 		t.Fatal("missing evidence")
@@ -27,7 +26,7 @@ func TestCPUReportUsesRuntimeThreshold(t *testing.T) {
 	}
 }
 
-func TestReportTimeWindowNormalizesSingleTickSignals(t *testing.T) {
+func TestReportTimeWindowDoesNotInventElapsedTime(t *testing.T) {
 	report := BuildSyscallReport(detector.SyscallSignal{
 		Sample: collector.SyscallSample{
 			Pid:         100,
@@ -35,8 +34,7 @@ func TestReportTimeWindowNormalizesSingleTickSignals(t *testing.T) {
 			Syscall:     "read",
 			CallsPerSec: 2000,
 		},
-		WindowStart: time.Unix(2, 0),
-		WindowEnd:   time.Unix(2, 0),
+		Window: collector.ObservationWindow{Start: time.Unix(2, 0), End: time.Unix(2, 0)},
 	}, 1000, 100)
 	start, err := time.Parse(time.RFC3339, report.TimeWindow.Start)
 	if err != nil {
@@ -46,8 +44,8 @@ func TestReportTimeWindowNormalizesSingleTickSignals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !start.Before(end) {
-		t.Fatalf("start must be before end, got start=%s end=%s", report.TimeWindow.Start, report.TimeWindow.End)
+	if !start.Equal(end) || report.TimeWindow.ElapsedMS != 0 {
+		t.Fatalf("single instant must remain exact, got window=%+v", report.TimeWindow)
 	}
 }
 
@@ -57,10 +55,23 @@ func TestMemReportOmitsEmptyCulpritObject(t *testing.T) {
 			MemTotalKB:      100,
 			MemAvailablePct: 10,
 		},
-		WindowStart: time.Unix(1, 0),
-		WindowEnd:   time.Unix(2, 0),
+		Window: rcaTestWindow(),
 	}, 15)
 	if report.RelatedObject.Pid != 0 || report.RelatedObject.Comm != "" {
 		t.Fatalf("empty culprit should produce system object, got %#v", report.RelatedObject)
+	}
+	if report.RelatedObject.Scope != "system" {
+		t.Fatalf("empty culprit must be system-scoped, got %#v", report.RelatedObject)
+	}
+}
+
+func TestMemOOMReportHasMachineCode(t *testing.T) {
+	report := BuildMemReport(detector.MemSignal{
+		OOM: true, Culprit: collector.MemProc{Pid: 9, Comm: "victim", OOMVictimCount: 1},
+		Snapshot: collector.MemSnapshot{OOMVictimCount: 1},
+		Window:   rcaTestWindow(),
+	}, 15)
+	if report.RootCauseCode != "mem.oom_victim" || report.RelatedObject.Pid != 9 {
+		t.Fatalf("unexpected OOM report: %#v", report)
 	}
 }

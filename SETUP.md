@@ -80,6 +80,13 @@
 | **fio** | 任意 | I/O 场景负载注入 | 可用 apt 安装 |
 | **stress-ng** | 支持 `cpu/vm/mutex` | CPU/内存/锁场景负载注入 | openKylin apt 包可能依赖缺失；脚本会源码构建 |
 
+运行时还会逐项验证 typed BTF 挂载点：`sched_switch/sched_wakeup`、
+`block_rq_issue/block_rq_complete`、`sys_enter/sys_exit`、`mark_victim`，以及
+`do_futex` 的 `fentry/fexit`。内核即使带 BTF，只要缺少其中任一 BTF 类型/函数，默认
+`--allow-partial=false` 也会明确失败，不能把 collector 未加载解释为“未发现异常”。
+CPU 启动盲区修复还需要允许 per-CPU `perf_event_open`；lock preflight 要求 root 从
+`/proc/kallsyms` 读到非零地址（受 `kernel.kptr_restrict` 影响）。
+
 系统包依赖（编译 bpftool 需要）：
 | 包名 | 用途 |
 |------|------|
@@ -433,8 +440,11 @@ fio --version
 ```bash
 cd ebpf-rca
 
-# 场景① CPU 异常检测（默认），JSON 流式输出
-sudo ./bin/ebpf-rca --scenario cpu --format json
+# 场景① CPU 异常检测；JSON 在结束时输出单个 DiagnosticSession
+sudo ./bin/ebpf-rca --scenario cpu --duration 60s --format json
+
+# 需要实时逐条 AnomalyReport 时使用 JSONL
+sudo ./bin/ebpf-rca --scenario cpu --format jsonl
 
 # 场景② I/O 延迟检测
 sudo ./bin/ebpf-rca --scenario io --format md

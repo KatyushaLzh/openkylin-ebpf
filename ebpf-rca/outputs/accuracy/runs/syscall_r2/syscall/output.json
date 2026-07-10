@@ -1,22 +1,22 @@
 {
   "anomaly_type": "系统调用热点",
   "related_object": {
-    "pid": 121436,
+    "pid": 85348,
     "comm": "dd"
   },
   "key_metrics": {
-    "avg_lat_us": 0.15,
-    "calls_per_sec": 704215,
+    "avg_lat_us": 0.14,
+    "calls_per_sec": 704684,
     "syscall": "write",
     "syscall_nr": 1,
-    "target_pid": 121436,
-    "total_ms_per_sec": 104.29
+    "target_pid": 85348,
+    "total_ms_per_sec": 102.14
   },
   "time_window": {
-    "start": "2026-07-08T09:13:04Z",
-    "end": "2026-07-08T09:13:05Z"
+    "start": "2026-07-09T12:15:43Z",
+    "end": "2026-07-09T12:15:44Z"
   },
-  "suspected_root_cause": "高频系统调用热点：write 达 704215 次/秒，疑似忙轮询或调用未做批处理",
+  "suspected_root_cause": "高频系统调用热点：write 达 704684 次/秒，疑似忙轮询或调用未做批处理",
   "confidence": 0.85,
   "evidence_chain": [
     {
@@ -34,33 +34,33 @@
     {
       "type": "metric",
       "name": "calls_per_sec",
-      "value": 704215,
+      "value": 704684,
       "threshold": 1000,
       "desc": "每秒调用次数"
     },
     {
       "type": "metric",
       "name": "avg_lat_us",
-      "value": 0.15,
+      "value": 0.14,
       "desc": "单次平均耗时(微秒)"
     },
     {
       "type": "metric",
       "name": "max_lat_us",
-      "value": 1048.58,
+      "value": 262.14,
       "desc": "单次最大耗时(微秒)"
     },
     {
       "type": "metric",
       "name": "total_ms_per_sec",
-      "value": 104.29,
+      "value": 102.14,
       "threshold": 300,
       "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
     },
     {
       "type": "metric",
       "name": "target_pid",
-      "value": 121436,
+      "value": 85348,
       "desc": "用户配置的进程过滤目标；0 表示全局观测"
     }
   ],
@@ -69,22 +69,22 @@
 {
   "anomaly_type": "系统调用热点",
   "related_object": {
-    "pid": 121436,
+    "pid": 85348,
     "comm": "dd"
   },
   "key_metrics": {
-    "avg_lat_us": 0.16,
-    "calls_per_sec": 704269,
+    "avg_lat_us": 0.15,
+    "calls_per_sec": 704683,
     "syscall": "read",
     "syscall_nr": 0,
-    "target_pid": 121436,
-    "total_ms_per_sec": 109.68
+    "target_pid": 85348,
+    "total_ms_per_sec": 108.17
   },
   "time_window": {
-    "start": "2026-07-08T09:13:04Z",
-    "end": "2026-07-08T09:13:05Z"
+    "start": "2026-07-09T12:15:43Z",
+    "end": "2026-07-09T12:15:44Z"
   },
-  "suspected_root_cause": "高频系统调用热点：read 达 704269 次/秒，疑似忙轮询或调用未做批处理",
+  "suspected_root_cause": "高频系统调用热点：read 达 704683 次/秒，疑似忙轮询或调用未做批处理",
   "confidence": 0.85,
   "evidence_chain": [
     {
@@ -102,33 +102,33 @@
     {
       "type": "metric",
       "name": "calls_per_sec",
-      "value": 704269,
+      "value": 704683,
       "threshold": 1000,
       "desc": "每秒调用次数"
     },
     {
       "type": "metric",
       "name": "avg_lat_us",
-      "value": 0.16,
+      "value": 0.15,
       "desc": "单次平均耗时(微秒)"
     },
     {
       "type": "metric",
       "name": "max_lat_us",
-      "value": 2097.15,
+      "value": 524.29,
       "desc": "单次最大耗时(微秒)"
     },
     {
       "type": "metric",
       "name": "total_ms_per_sec",
-      "value": 109.68,
+      "value": 108.17,
       "threshold": 300,
       "desc": "每秒累计占用时间(毫秒)，反映累计耗时占比"
     },
     {
       "type": "metric",
       "name": "target_pid",
-      "value": 121436,
+      "value": 85348,
       "desc": "用户配置的进程过滤目标；0 表示全局观测"
     }
   ],

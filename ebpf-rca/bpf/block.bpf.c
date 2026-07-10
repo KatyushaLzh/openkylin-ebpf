@@ -1,45 +1,56 @@
 // SPDX-License-Identifier: GPL-2.0
 //
-// 场景②：I/O 延迟抖动 / 阻塞等待 —— 基于块层 tracepoint 的请求时延分析。
-//
-// 思路（赛题关键证据点：IOPS、平均时延、P99 时延、队列深度、热点设备）：
-//   block_rq_issue   ：请求下发到设备时记录起点（按 dev+sector+nr_sector+rwbs 索引），队列深度++。
-//   block_rq_complete：请求完成时命中起点才算单次时延并扣队列深度；按设备累计
-//                      次数/总时延/最大时延/字节数，并落入 log2 时延直方图(供算 P99)，队列深度--。
-// 内核态仅聚合，用户态按窗口差分并从直方图估算 P99，开销低。
-//
-// 注意：tracepoint 字段偏移随内核版本可能变化。如遇异常，请用
-//   cat /sys/kernel/tracing/events/block/block_rq_issue/format
-// 核对 dev/sector/nr_sector 的布局。
+// Block I/O collector. Kernel 6.6+BTF is a hard requirement. The request
+// pointer is the request identity; sector tuples are not unique under merged
+// or concurrent I/O and therefore cannot safely match issue to completion.
 
 #include "vmlinux.h"
+#include <bpf/bpf_core_read.h>
 #include <bpf/bpf_helpers.h>
+#include <bpf/bpf_tracing.h>
 
 char LICENSE[] SEC("license") = "GPL";
 
-#define NSLOTS 32 // log2(ns) 直方图槽位，2^31 ns ≈ 2.1s
+#define NSLOTS 40
 
-struct dev_stat {
-	__u64 count;        // 完成请求数
-	__u64 total_lat_ns; // 累计时延
-	__u64 max_lat_ns;   // 最大时延
-	__u64 bytes;        // 累计字节数(吞吐)
-	__s64 inflight;     // 当前在途请求数(队列深度,gauge)
-	__u64 slots[NSLOTS];// 时延 log2 直方图
+struct request_state {
+	__u64 first_issue_ns;
+	__u64 total_bytes;
+	__u64 completed_bytes;
+	__u64 successful_bytes;
+	__u32 dev;
+	// Requests issued while user space completes the two-hook startup handshake
+	// still need exact completion matching, but must not contaminate metrics.
+	__u32 tracked;
 };
 
-struct rq_key {
-	__u32 dev;
-	__u32 nr_sector;
-	__u64 sector;
-	char  rwbs[8];
+// The spin lock protects queue-area integration and all per-device counters.
+// queue_area_ns has units request*ns.
+struct dev_stat {
+	struct bpf_spin_lock lock;
+	__u32 pad;
+	__u64 count;
+	__u64 total_lat_ns;
+	__u64 bytes;
+	__u64 queue_area_ns;
+	__u64 queue_last_ns;
+	__s64 inflight;
+	__u64 slots[NSLOTS];
+};
+
+struct health_stat {
+	__u64 duplicate_issue;
+	__u64 completion_miss;
+	__u64 map_update_fail;
+	__u64 partial_completion;
+	__u64 io_error;
 };
 
 struct {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 65536);
-	__type(key, struct rq_key);
-	__type(value, __u64);
+	__type(key, struct request *);
+	__type(value, struct request_state);
 } start SEC(".maps");
 
 struct {
@@ -49,106 +60,191 @@ struct {
 	__type(value, struct dev_stat);
 } dev_stats SEC(".maps");
 
-// block_rq_issue tracepoint 上下文（含 common 头 8 字节）
-struct block_rq_issue_tp {
-	__u64 pad;
-	__u32 dev;
-	__u32 _pad0;
-	__u64 sector;
-	__u32 nr_sector;
-	__u32 bytes;
-	char  rwbs[8];
-	char  comm[16];
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, struct health_stat);
+} health SEC(".maps");
 
-// block_rq_complete tracepoint 上下文
-struct block_rq_complete_tp {
-	__u64 pad;
-	__u32 dev;
-	__u32 _pad0;
-	__u64 sector;
-	__u32 nr_sector;
-	__s32 error;
-	char  rwbs[8];
-};
+// Zero-initialized and set by user space only after completion was attached
+// before issue. The value and a non-zero request.start_time_ns share
+// CLOCK_MONOTONIC; Linux resets that field on each timestamped allocation.
+// Zero means startup classification is ambiguous and is conservatively
+// suppressed. Do not use io_start_time_ns: Linux writes it after rq_issue.
+struct {
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 1);
+	__type(key, __u32);
+	__type(value, __u64);
+} startup_boundary_ns SEC(".maps");
 
-static __always_inline __u32 log2_u64(__u64 v)
+static __always_inline __u64 startup_boundary(void)
 {
-	__u32 r = 0;
-#pragma unroll
-	for (int i = 0; i < 64; i++) {
-		if (v <= 1)
-			break;
-		v >>= 1;
-		r++;
-	}
-	return r;
+	__u32 zero = 0;
+	__u64 *boundary = bpf_map_lookup_elem(&startup_boundary_ns, &zero);
+	return boundary ? *boundary : 0;
 }
 
-static __always_inline struct dev_stat *get_dev(__u32 dev)
+static __always_inline struct health_stat *get_health(void)
+{
+	__u32 zero = 0;
+	return bpf_map_lookup_elem(&health, &zero);
+}
+
+static __always_inline void health_inc(__u64 *counter)
+{
+	if (counter)
+		__sync_fetch_and_add(counter, 1);
+}
+
+static __always_inline __u32 request_dev(struct request *rq)
+{
+	// Queue depth is a property of the whole request_queue. Match the block
+	// tracepoint's disk_devt(rq->q->disk) identity instead of splitting one
+	// hardware queue by partition.
+	int major = BPF_CORE_READ(rq, q, disk, major);
+	int minor = BPF_CORE_READ(rq, q, disk, first_minor);
+	return ((__u32)major << 20) | ((__u32)minor & 0xfffff);
+}
+
+static __always_inline __u32 latency_slot(__u64 ns)
+{
+	__u32 slot = 0;
+	if (ns >> 32) { ns >>= 32; slot += 32; }
+	if (ns >> 16) { ns >>= 16; slot += 16; }
+	if (ns >> 8) { ns >>= 8; slot += 8; }
+	if (ns >> 4) { ns >>= 4; slot += 4; }
+	if (ns >> 2) { ns >>= 2; slot += 2; }
+	if (ns >> 1) slot += 1;
+	if (slot >= NSLOTS)
+		slot = NSLOTS - 1;
+	return slot;
+}
+
+static __always_inline struct dev_stat *get_dev(__u32 dev, __u64 now)
 {
 	struct dev_stat *d = bpf_map_lookup_elem(&dev_stats, &dev);
 	if (d)
 		return d;
+
 	struct dev_stat zero = {};
-	bpf_map_update_elem(&dev_stats, &dev, &zero, BPF_NOEXIST);
+	zero.queue_last_ns = now;
+	if (bpf_map_update_elem(&dev_stats, &dev, &zero, BPF_NOEXIST) < 0) {
+		// Another CPU may have won initialization. EEXIST is healthy; only
+		// count failure when the value is still unavailable after re-lookup.
+		d = bpf_map_lookup_elem(&dev_stats, &dev);
+		if (!d) {
+			struct health_stat *h = get_health();
+			health_inc(h ? &h->map_update_fail : 0);
+		}
+		return d;
+	}
 	return bpf_map_lookup_elem(&dev_stats, &dev);
 }
 
-static __always_inline struct rq_key make_key(__u32 dev, __u64 sector, __u32 nr_sector, const char rwbs[8])
+static __always_inline void account_queue_locked(struct dev_stat *d, __u64 now)
 {
-	struct rq_key k = {};
-	k.dev = dev;
-	k.nr_sector = nr_sector;
-	k.sector = sector;
-#pragma unroll
-	for (int i = 0; i < 8; i++)
-		k.rwbs[i] = rwbs[i];
-	return k;
+	if (d->queue_last_ns && now > d->queue_last_ns && d->inflight > 0)
+		d->queue_area_ns += (now - d->queue_last_ns) * (__u64)d->inflight;
+	d->queue_last_ns = now;
 }
 
-SEC("tracepoint/block/block_rq_issue")
-int handle_issue(struct block_rq_issue_tp *ctx)
+SEC("tp_btf/block_rq_issue")
+int BPF_PROG(handle_issue, struct request *rq)
 {
-	struct rq_key k = make_key(ctx->dev, ctx->sector, ctx->nr_sector, ctx->rwbs);
-	__u64 ts = bpf_ktime_get_ns();
-	bpf_map_update_elem(&start, &k, &ts, BPF_ANY);
-
-	struct dev_stat *d = get_dev(ctx->dev);
-	if (d)
-		__sync_fetch_and_add(&d->inflight, 1);
-	return 0;
-}
-
-SEC("tracepoint/block/block_rq_complete")
-int handle_complete(struct block_rq_complete_tp *ctx)
-{
-	struct rq_key k = make_key(ctx->dev, ctx->sector, ctx->nr_sector, ctx->rwbs);
-	__u64 *tsp = bpf_map_lookup_elem(&start, &k);
-	if (!tsp)
+	if (!rq)
 		return 0;
 
-	struct dev_stat *d = get_dev(ctx->dev);
-	if (!d) {
-		bpf_map_delete_elem(&start, &k);
+	struct health_stat *h = get_health();
+	if (bpf_map_lookup_elem(&start, &rq)) {
+		health_inc(h ? &h->duplicate_issue : 0);
 		return 0;
 	}
 
-	__sync_fetch_and_add(&d->inflight, -1);
-
 	__u64 now = bpf_ktime_get_ns();
-	__u64 delta = now - *tsp;
-	bpf_map_delete_elem(&start, &k);
+	struct request_state state = {
+		.first_issue_ns = now,
+		.total_bytes = BPF_CORE_READ(rq, __data_len),
+		.dev = request_dev(rq),
+		.tracked = startup_boundary() != 0,
+	};
+	if (bpf_map_update_elem(&start, &rq, &state, BPF_NOEXIST) < 0) {
+		health_inc(h ? &h->map_update_fail : 0);
+		return 0;
+	}
 
-	__sync_fetch_and_add(&d->count, 1);
-	__sync_fetch_and_add(&d->total_lat_ns, delta);
-	__sync_fetch_and_add(&d->bytes, (__u64)ctx->nr_sector * 512);
-	if (delta > d->max_lat_ns)
-		d->max_lat_ns = delta; // best-effort gauge
+	if (!state.tracked)
+		return 0;
 
-	__u32 slot = log2_u64(delta);
-	if (slot >= NSLOTS)
-		slot = NSLOTS - 1;
-	__sync_fetch_and_add(&d->slots[slot], 1);
+	struct dev_stat *d = get_dev(state.dev, now);
+	if (!d)
+		return 0;
+	bpf_spin_lock(&d->lock);
+	account_queue_locked(d, now);
+	d->inflight++;
+	bpf_spin_unlock(&d->lock);
+	return 0;
+}
+
+SEC("tp_btf/block_rq_complete")
+int BPF_PROG(handle_complete, struct request *rq, blk_status_t error,
+	     unsigned int nr_bytes)
+{
+	if (!rq)
+		return 0;
+
+	struct health_stat *h = get_health();
+	struct request_state *state = bpf_map_lookup_elem(&start, &rq);
+	if (!state) {
+		__u64 boundary = startup_boundary();
+		__u64 allocated = BPF_CORE_READ(rq, start_time_ns);
+		if (boundary && allocated && allocated >= boundary)
+			health_inc(h ? &h->completion_miss : 0);
+		return 0;
+	}
+
+	__u64 completed = state->completed_bytes + (__u64)nr_bytes;
+	__u64 remaining = BPF_CORE_READ(rq, __data_len);
+	if (state->tracked && error)
+		health_inc(h ? &h->io_error : 0);
+	else if (state->tracked)
+		state->successful_bytes += (__u64)nr_bytes;
+	// trace_block_rq_complete runs before blk_update_request advances rq, so
+	// __data_len is the authoritative remaining byte count at this event.
+	if ((__u64)nr_bytes < remaining) {
+		state->completed_bytes = completed;
+		if (state->tracked)
+			health_inc(h ? &h->partial_completion : 0);
+		return 0;
+	}
+
+	// Copy before deleting: map-value pointers become invalid after delete.
+	struct request_state done = *state;
+	done.completed_bytes = completed;
+	__u64 now = bpf_ktime_get_ns();
+	__u64 latency_ns = now > done.first_issue_ns ? now - done.first_issue_ns : 0;
+	bpf_map_delete_elem(&start, &rq);
+	if (!done.tracked)
+		return 0;
+
+	struct dev_stat *d = bpf_map_lookup_elem(&dev_stats, &done.dev);
+	if (!d) {
+		health_inc(h ? &h->map_update_fail : 0);
+		return 0;
+	}
+	__u32 slot = latency_slot(latency_ns);
+	bpf_spin_lock(&d->lock);
+	account_queue_locked(d, now);
+	if (d->inflight > 0)
+		d->inflight--;
+	d->count++;
+	d->total_lat_ns += latency_ns;
+	__u64 accounted_bytes = done.successful_bytes;
+	if (accounted_bytes > done.total_bytes)
+		accounted_bytes = done.total_bytes;
+	d->bytes += accounted_bytes;
+	d->slots[slot]++;
+	bpf_spin_unlock(&d->lock);
 	return 0;
 }

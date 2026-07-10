@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitlink.org.cn/ebpf-rca/schemas/diagnostic_session.schema.json",
+  "title": "ebpf-rca DiagnosticSession",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "started_at", "ended_at", "elapsed_ms",
+    "environment", "configuration", "collectors", "partial", "reports"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "elapsed_ms": { "type": "number", "minimum": 0 },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostname", "os", "architecture", "kernel_release", "btf"],
+      "properties": {
+        "hostname": { "type": "string", "minLength": 1 },
+        "os": { "type": "string", "minLength": 1 },
+        "architecture": { "type": "string", "minLength": 1 },
+        "kernel_release": { "type": "string", "minLength": 1 },
+        "btf": { "type": "boolean" }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenario", "interval_ms", "sustain", "allow_partial", "thresholds"],
+      "properties": {
+        "scenario": { "enum": ["cpu", "io", "mem", "lock", "syscall", "all"] },
+        "interval_ms": { "type": "integer", "minimum": 1, "maximum": 9223372036854775807 },
+        "sustain": { "type": "integer", "minimum": 1, "maximum": 9223372036854775807 },
+        "target_pid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "allow_partial": { "type": "boolean" },
+        "thresholds": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "cpu_util", "io_p99_ms", "mem_available_floor_pct",
+            "lock_offcpu_ratio", "syscall_calls_per_sec"
+          ],
+          "properties": {
+            "cpu_util": { "type": "number", "minimum": 0 },
+            "io_p99_ms": { "type": "number", "minimum": 0 },
+            "mem_available_floor_pct": { "type": "number", "minimum": 0 },
+            "lock_offcpu_ratio": { "type": "number", "minimum": 0 },
+            "syscall_calls_per_sec": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "collectors": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "requested", "initialized", "state", "poll_count"],
+        "properties": {
+          "name": { "enum": ["cpu", "io", "mem", "lock", "syscall"] },
+          "requested": { "const": true },
+          "initialized": { "type": "boolean" },
+          "state": { "enum": ["stopped", "failed"] },
+          "poll_count": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+          "last_poll_at": { "type": "string", "format": "date-time" },
+          "error": { "type": "string", "minLength": 1 },
+          "health_error": { "type": "string", "minLength": 1 },
+          "health": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["program_runtime_ns", "program_run_count", "map_memory_bytes", "counters"],
+            "properties": {
+              "program_runtime_ns": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+              "program_run_count": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+              "map_memory_bytes": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 },
+              "counters": {
+                "type": "object",
+                "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 18446744073709551615 }
+              }
+            }
+          }
+        },
+        "allOf": [
+          {
+            "if": { "type": "object", "properties": { "state": { "const": "failed" } }, "required": ["state"] },
+            "then": { "type": "object", "properties": { "error": {} }, "required": ["error"] },
+            "else": {
+              "type": "object",
+              "required": ["health"],
+              "properties": { "initialized": { "const": true }, "health": {} },
+              "not": { "anyOf": [
+                { "type": "object", "properties": { "error": {} }, "required": ["error"] },
+                { "type": "object", "properties": { "health_error": {} }, "required": ["health_error"] }
+              ] }
+            }
+          }
+        ]
+      }
+    },
+    "partial": { "type": "boolean" },
+    "reports": {
+      "type": "array",
+      "items": { "$ref": "anomaly_report.schema.json" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "type": "object", "properties": { "partial": { "const": true } }, "required": ["partial"] },
+      "then": { "type": "object", "properties": { "collectors": {
+        "type": "array",
+        "contains": { "type": "object", "properties": { "state": { "const": "failed" } }, "required": ["state"] }
+      } } },
+      "else": { "type": "object", "properties": { "collectors": {
+        "type": "array", "items": { "type": "object", "properties": { "state": { "const": "stopped" } } }
+      } } }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "all" } }, "required": ["scenario"] } } },
+      "then": {
+        "type": "object",
+        "properties": {
+          "collectors": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "allOf": [
+              { "contains": { "type": "object", "properties": { "name": { "const": "cpu" } }, "required": ["name"] } },
+              { "contains": { "type": "object", "properties": { "name": { "const": "io" } }, "required": ["name"] } },
+              { "contains": { "type": "object", "properties": { "name": { "const": "mem" } }, "required": ["name"] } },
+              { "contains": { "type": "object", "properties": { "name": { "const": "lock" } }, "required": ["name"] } },
+              { "contains": { "type": "object", "properties": { "name": { "const": "syscall" } }, "required": ["name"] } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "cpu" } }, "required": ["scenario"] } } },
+      "then": { "type": "object", "properties": {
+        "collectors": { "type": "array", "minItems": 1, "maxItems": 1, "contains": { "type": "object", "properties": { "name": { "const": "cpu" } }, "required": ["name"] } },
+        "reports": { "type": "array", "items": { "type": "object", "properties": { "root_cause_code": { "enum": ["cpu.compute_hotspot", "cpu.scheduler_pressure"] } } } }
+      } }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "io" } }, "required": ["scenario"] } } },
+      "then": { "type": "object", "properties": {
+        "collectors": { "type": "array", "minItems": 1, "maxItems": 1, "contains": { "type": "object", "properties": { "name": { "const": "io" } }, "required": ["name"] } },
+        "reports": { "type": "array", "items": { "type": "object", "properties": { "root_cause_code": { "enum": ["io.queue_congestion", "io.device_latency"] } } } }
+      } }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "mem" } }, "required": ["scenario"] } } },
+      "then": { "type": "object", "properties": {
+        "collectors": { "type": "array", "minItems": 1, "maxItems": 1, "contains": { "type": "object", "properties": { "name": { "const": "mem" } }, "required": ["name"] } },
+        "reports": { "type": "array", "items": { "type": "object", "properties": { "root_cause_code": { "enum": ["mem.reclaim_pressure", "mem.oom_victim"] } } } }
+      } }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "lock" } }, "required": ["scenario"] } } },
+      "then": { "type": "object", "properties": {
+        "collectors": { "type": "array", "minItems": 1, "maxItems": 1, "contains": { "type": "object", "properties": { "name": { "const": "lock" } }, "required": ["name"] } },
+        "reports": { "type": "array", "items": { "type": "object", "properties": { "root_cause_code": { "enum": ["lock.futex_contention", "lock.kernel_sync_wait"] } } } }
+      } }
+    },
+    {
+      "if": { "type": "object", "properties": { "configuration": { "type": "object", "properties": { "scenario": { "const": "syscall" } }, "required": ["scenario"] } } },
+      "then": { "type": "object", "properties": {
+        "collectors": { "type": "array", "minItems": 1, "maxItems": 1, "contains": { "type": "object", "properties": { "name": { "const": "syscall" } }, "required": ["name"] } },
+        "reports": { "type": "array", "items": { "type": "object", "properties": { "root_cause_code": { "enum": ["syscall.high_frequency", "syscall.high_latency"] } } } }
+      } }
+    }
+  ]
+}

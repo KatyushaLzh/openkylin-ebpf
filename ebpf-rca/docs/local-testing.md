@@ -1,38 +1,41 @@
 # 本地 E2E 测试系统
 
-本测试系统用于在 openKylin / Kernel 6.6+ 主机上做端到端校验：注入异常负载，
-运行 `ebpf-rca` 采集，再用 `rca-testcheck` 校验 JSON/Markdown 诊断结果。
+本地 E2E 的核心判定不是“出现了文本”，而是：严格 `DiagnosticSession` 中存在同时匹配异常类型、
+`root_cause_code` 和独立 workload 对象 oracle 的报告，并且没有额外错误报告。
 
-## 核心模型
+## 1. 运行模型
 
-测试不是校验某个固定数值，而是校验“信号是否成立”：
+`scripts/test_local.sh` 每次场景测试执行：
 
-- 输出能被解析为 `schema.AnomalyReport`
-- `anomaly_type` 与场景匹配
-- 关联对象、关键指标、时间窗口、根因、证据链、建议字段完整
-- 关键指标存在并满足宽松方向性阈值
-
-这样能避免硬件、调度、磁盘和内存状态差异导致的脆弱测试，同时覆盖比赛评分里的
-结构化输出、诊断准确性和证据链一致性。
-
-## 准备
-
-```bash
-# 先进入仓库根目录
-cd ebpf-rca
-make deps
-make vmlinux
+```text
+准备 workload / 启动 strict all-mode 工具
+  -> 独立采样 workload TGID/TID/device oracle
+  -> 等待工具结束并写出一个 DiagnosticSession
+  -> rca-testcheck 严格解析 schema
+  -> 校验 type + code + object + metrics + evidence
 ```
 
-等价地，也可以在仓库根目录执行 `bash setup_env.sh --no-build`。`make deps` 已经转调这个脚本。
+即使每轮只注入一个场景，工具也固定使用 `--scenario all`、默认阈值/sustain、无
+`--target-pid`。因此可以同时发现跨场景误报。任一不匹配的额外报告会让正例检查失败，而不是只
+写 warning；负例要求 `reports=[]`。collector/session/ground-truth 失败是基础设施错误，不是 TN。
 
-需要 root 或可用 `sudo`，并要求 `/sys/kernel/btf/vmlinux` 存在。I/O 场景需要 `fio`，
-内存和 stress 模式下的 CPU/锁场景需要 `stress-ng`；deterministic 模式使用仓库内
-`cmd/rca-testload` 生成可控 CPU / syscall / flock 负载。
-如果 openKylin 的 `stress-ng` 包因 `libipsec-mb0` 依赖缺失无法安装，测试脚本会自动使用
-`../.build_deps/bin/stress-ng` 中的源码构建版本。
+## 2. 准备
 
-先用普通用户完成构建，避免 root 和普通用户 Go cache 分裂：
+要求 openKylin、Kernel 6.6+、可读 BTF/kallsyms、typed tracepoint/fentry/perf-event 能力和
+root/等价 capability。I/O 需要 fio；只有显式附加的 CPU stress 模式需要 stress-ng。正式默认的
+CPU、内存、锁和 syscall 主用例统一使用仓库 `rca-testload` 的低交叉标签、对象可校验负载。锁正例
+使用显式 CAS + `FUTEX_WAIT_PRIVATE` 状态字，而不是会在 Go runtime 内停车 goroutine 的
+`sync.Mutex`；负载直接输出同一个 `uaddr` 和实际 waiter TID，作为独立对象 oracle。
+
+```bash
+cd ebpf-rca
+make deps
+make vmlinux generate
+make build test-checker test-load
+sudo -n bash scripts/test_local.sh preflight --no-build
+```
+
+普通用户先构建，再只对加载阶段使用 sudo，避免 Go cache 分裂。离线环境：
 
 ```bash
 export GOCACHE=/var/tmp/go-cache
@@ -42,139 +45,137 @@ go mod download
 make build test-checker test-load
 ```
 
-自动化环境建议使用非交互 sudo，并用绝对路径调用脚本：
+## 3. 常用命令
 
 ```bash
-sudo -n /usr/bin/bash "$PWD/scripts/test_local.sh" preflight --no-build
-sudo -n /usr/bin/bash "$PWD/scripts/test_local.sh" all --workload deterministic --duration 30 --no-build
-```
+# CPU + syscall 快速链路
+bash scripts/test_local.sh smoke --workload deterministic --duration 15
 
-`sudo -n` 不会弹密码；如果当前 shell 没有 sudo timestamp 或免密配置，它会立即失败。
-此时先在 VM 终端执行一次 `sudo -v`，或配置仅允许该测试脚本的免密规则。
-不建议使用 `sudo -E` 依赖环境继承；某些 sudoers 策略会因为未启用 `SETENV` 拒绝执行。
+# 逐个注入五类正式 deterministic 正例；每轮工具仍是 strict all-mode
+bash scripts/test_local.sh all --duration 30
 
-本仓库当前还保留了一个本机复跑 wrapper：
+# 附加现实压力测试；不替代正式 deterministic oracle 矩阵
+bash scripts/test_local.sh all --workload stress --duration 30
 
-```bash
-./out/run-real-ebpf-e2e.sh
-```
+# 五类语义负例：idle、正常内存、正常 epoll、普通 I/O 睡眠、低延迟顺序 I/O
+bash scripts/test_local.sh negative --duration 15
 
-它会按“离线构建 → 静态检查 → root eBPF E2E”的顺序执行。不要用 `sudo` 直接运行整个
-wrapper；脚本内部会在需要加载 eBPF 的阶段调用 `sudo -n /usr/bin/bash ... --no-build`。
+# --scenario all + --report 的 Markdown 汇总路径
+bash scripts/test_local.sh report --workload deterministic --duration 30
 
-## 常用命令
-
-```bash
-# 只检查环境，不运行负载
-bash scripts/test_local.sh preflight
-
-# 快速烟测：CPU + syscall
-bash scripts/test_local.sh smoke --workload deterministic
-
-# 五类正向异常场景
-bash scripts/test_local.sh all --workload deterministic
-
-# 空载负向测试，检查基础误报
-bash scripts/test_local.sh negative
-
-# 汇总 Markdown 报告测试
-bash scripts/test_local.sh report --workload deterministic
-```
-
-也可以单独运行某个场景：
-
-```bash
-bash scripts/test_local.sh cpu --workload deterministic --duration 20
+# 单个注入场景
 bash scripts/test_local.sh scenario --scenario io --duration 30
-make test-local TEST_DURATION=60
 ```
 
-## 多轮准确率评测
+`--no-build` 复用现有二进制；`--out DIR` 指定 artifact；`--io-path PATH` 必须位于真实块设备
+文件系统。每个 workload 都在独立 session/process-group 中运行并有 `duration+5s` 的硬超时；中断或
+失败会 TERM 后 KILL 整个组，避免内存 worker/fio job 被遗留为孤儿。truth watcher 先绑定 root 的
+`/proc/<pid>/stat` starttime；deadline 到期时同一进程实例仍存活会由 checker 直接失败，shell wrapper
+再做一次 live/non-zombie 二次检查，不能把 PID reuse 或不完整 oracle 写成成功。
+命令返回非零就表示 workload、工具、truth 或 checker 至少一环失败。
 
-单轮 `test_local.sh` 用于判断一次注入是否命中。需要形成比赛报告里的“准确率 / 误报率 /
-混淆矩阵”时，使用多轮评测脚本：
+## 4. Ground truth 与严格 checker
+
+- CPU：采样 workload 进程树的 TGID/TID，报告 PID 必须是 TGID，Top TID 必须属于该树；
+- I/O：用测试文件的设备号建立 oracle，分区/父设备按 checker 规则归一；
+- 内存：报告 culprit 必须命中 workload TGID；确实无法定位时仅允许显式 system-scope 用例；
+- futex：TGID/TID 必须命中 workload；`lock-oracle.json` 中的显式 futex 地址必须与报告
+  `related_object.lock_address` 相等，且至少两个不同 waiter TID 实际在该地址等待；
+- syscall：TGID 命中 workload，syscall name/nr 与场景规则一致。
+
+`tests/scenarios.yaml` 为每个用例声明 expected anomaly type、expected root cause code、必需 metrics、
+evidence 和数值下限。`rca-testcheck` 使用 `DisallowUnknownFields`，接受一个严格 session 或严格
+JSONL；不再接受连续 pretty JSON 对象流，也不会跳过损坏行。
+
+## 5. 多轮准确率
 
 ```bash
-# 默认：五类正例 + 四类 idle 负例，每场景 3 轮，stress workload
+# 默认每场景 10 轮、deterministic workload（I/O 仍使用 fio）
 make accuracy-full
 
-# 快速回归：只跑 CPU，两轮 deterministic workload
-python3 scripts/eval_accuracy.py --scenario cpu --repeat 2 --workload deterministic --duration 15 --out outputs/accuracy-cpu
+# 快速开发回归，不可作为最终评分数字
+python3 scripts/eval_accuracy.py --scenario cpu --repeat 2 \
+  --workload deterministic --duration 15 --out outputs/accuracy-cpu
 
-# 不重新跑 eBPF，只聚合已有 check.json 并重生成 CSV/Markdown/SVG
-python3 scripts/eval_accuracy.py --from-existing outputs/accuracy/runs --out outputs/accuracy
+# 只重算已有 check.json；原始失败仍保留
+python3 scripts/eval_accuracy.py \
+  --from-existing outputs/accuracy/runs --out outputs/accuracy
 ```
 
-统计口径：
+正式结果还要检查 `accuracy_summary.json` 的 `acceptance.coverage_complete` 与
+`acceptance.all_targets_met`；“脚本成功生成文件”不代表四项验收阈值通过。
 
-- 正例：`passed=true` 且 `matched_reports` 非空记为 TP，否则记为 FN。
-- 负例：`passed=true` 且 `report_count=0` 记为 TN，否则记为 FP。
-- `check.json` 缺失或无法解析记为 `infra_error`。
-- `extra_report_count` 单独统计，不混入 TP/FN。
+当前默认集合是五类正例加五类语义负例：`idle/normal_mem/normal_epoll/normal_io_sleep/normal_io_seq`。
+旧 `idle_cpu/idle_io/idle_lock/idle_syscall` 仅保留为兼容别名，不进入默认主矩阵。每类默认 10 轮；
+减少轮数的开发回归不能作为最终评分数字。
 
-产物写入 `outputs/accuracy/`：
+统计规则：匹配 type+code+oracle 且无 extra report 才记 TP；缺匹配为 FN；任一 extra report 或
+负例报告为 FP。每轮 `run_status.json` 单独记录 tool/workload/truth/health/checker 退出码；前四项非零、
+状态文件缺失，或 checker 不能产出 `evaluation_valid=true` 的严格结果时记 `infra_error`。checker 因
+正常的 FN/FP 返回非零仍是有效诊断轮次，不能和基础设施故障混为一谈。最终还需输出
+macro F1、root-code 正确率与对象 Top-1；Top-1 是 confidence 最高、同分最早的同一报告，不能对
+code 与对象分别 any-match。旧的单一“diagnostic accuracy”不能代替这些指标。
+其中 `health_rc` 也承载场景完整性后置条件：I/O drain/counter 必须干净；内存负载必须用动态
+worker 计划在安全的单 worker 触页速率下跨过 15% MemAvailable 并持续至少 5 秒（或记录真实 OOM
+victim）；lock 的显式 futex 地址/TID/wait-wake oracle 必须完整；syscall 实测速率必须达到
+`max(10000, 0.8*target)`。futex 地址和注入 syscall 名会原子写入 `ground_truth.json`，随后由主
+checker 精确匹配；错地址/错 syscall 报告正常计 FP/FN，而不是 infra_error。
 
-```text
-outputs/accuracy/
-├── accuracy.md
-├── accuracy_runs.csv
-├── accuracy_summary.csv
-├── accuracy_summary.json
-├── pass_rate_by_scenario.svg
-├── error_breakdown.svg
-└── runs/
-```
-
-## 测试集配置
-
-测试集在 `tests/scenarios.yaml`：
-
-- `cpu/io/mem/lock/syscall`：正向异常场景
-- `idle`：兼容旧配置的 CPU 空载别名
-- `idle_cpu/idle_io/idle_lock/idle_syscall`：分场景负向空载场景
-- `report_all`：`--scenario all --report` 汇总报告场景
-
-每个场景声明期望的异常类型、关联对象类型、关键指标、证据链字段和宽松数值下限。
-`scripts/test_local.sh` 负责运行负载，`cmd/rca-testcheck` 负责读取该配置并断言输出。
-正例会在 workload 存活期间采集 ground truth：CPU/lock 按 tid 校验，mem/syscall 按 tgid 校验，
-I/O 按测试文件所在块设备校验；未命中 workload 的额外报告会写入 warning，便于定位误报。
-
-## 产物目录
-
-每次运行都会写入：
+## 6. Artifact 目录
 
 ```text
 test-results/<timestamp>/
 ├── env.txt
 ├── run.log
 ├── cpu/
-│   ├── output.json
+│   ├── output.json          # 单个 DiagnosticSession
 │   ├── ebpf-rca.stderr
 │   ├── workload.log
 │   ├── ground_truth.json
+│   ├── mem-oracle.json       # mem 用例：跨压/持续窗口或 OOM victim 后置条件
+│   ├── lock-oracle.json      # lock 用例：独立 uaddr、waiter TID 与 futex 调用计数
+│   ├── syscall-oracle.json   # syscall 用例：read 名称、目标/实测速率
+│   ├── run_status.json       # tool/workload/truth/health/checker 分项退出码
 │   ├── ground_truth.log
 │   ├── check.log
 │   └── check.json
 └── ...
 ```
 
-`output.json` 是 `ebpf-rca --format json` 的原始输出；`check.json` 是机器可读的校验结果；
-`workload.log` 和 `ebpf-rca.stderr` 用于排查负载或 eBPF 挂载失败。
+检查 `output.json` 时先看 `partial=false` 和五个 `collectors[]` 生命周期，再看 `reports[]`；空
+reports 只有在 collector 都正常时才是有效观测。每轮准确率 artifact 还保留 `eval_command.log`，
+用于证明工具没有传 target 或正例专用阈值。
 
-## 常见失败
+## 7. 平台验收入口
 
-- `missing readable /sys/kernel/btf/vmlinux`：先运行 `make vmlinux`，或确认内核启用 BTF。
-- `attach ... permission denied`：用 root 运行，或授予 `CAP_BPF/CAP_PERFMON/CAP_SYS_ADMIN`。
-- `sudo cannot run non-interactively`：`sudo -n` 没有可用凭据；先 `sudo -v` 或配置免密 sudo。
-- `sudo ... no new privileges`：当前进程被容器/沙箱设置了 no-new-privileges，必须在宿主终端或允许提权的执行环境运行。
-- `go: downloading ... connect: connection refused`：Go module cache 未预热；按“准备”中的 `GOMODCACHE/GOPROXY=off` 命令先验证离线缓存，必要时临时 `GO_OFFLINE=0 ./out/run-real-ebpf-e2e.sh` 在线预热一次。
-- `stress-ng is required`：在仓库根目录运行 `bash setup_env.sh --no-build`，脚本会源码构建本地版本。
-- apt/dpkg 报配置未完成：执行 `sudo -n env DEBIAN_FRONTEND=noninteractive dpkg --configure -a`。
-- I/O 场景无报告：确认 `--io-path` 位于真实磁盘文件系统，不在 tmpfs；如果磁盘极快，可临时降低正例阈值，例如 `--threshold 0.50`。
-- 内存场景无报告：机器可用内存太多时可临时设置 `MEM_BYTES=90% make test-local`。
-- 锁场景无报告：默认只保留阻塞栈命中锁/同步符号的报告；可用 `--lock-include-blocking` 临时查看普通长阻塞，用 `--lock-topn` 控制每窗口输出数量。
+本地短测不能代替平台交付。x86_64 与 ARM64 分别执行：
 
-## 清理
+```bash
+bash scripts/platform_acceptance.sh \
+  --soak-duration 30m --accuracy-repeat 10 --bench-repeat 5
+```
+
+该入口先对 `HEAD` clean snapshot 使用已提交的 bpf2go Go/ELF 产物完成 unit/build；随后同一 archive
+的第二棵临时树执行目标机重生成与 unit/build，只把 SHA256、二进制 diff 和 equality flag 作为
+provenance 保存，不修改工作区。五类 E2E、30 分钟 all-mode soak 和严格性能配对最终仍在第一棵树
+运行。CO-RE object 因本地 BTF/架构产生字节差异不算失败。脚本仍会硬拒绝非 openKylin、
+Kernel < 6.6、非 x86_64/ARM64、BTF 缺失或 `outputs/` 之外的未提交项目改动。两架构必须各自产生
+bundle。
+
+## 8. 常见失败
+
+- `missing readable /sys/kernel/btf/vmlinux`：换用 Kernel 6.6+BTF，不存在降级路径；
+- `attach tp_btf/...` / `fentry/do_futex` / `perf_event_open`：目标内核缺 typed prototype、fentry 或 perf 能力；
+- `partial=true` / collector failed：查看 session 中对应 error，默认主测试不允许 partial；
+- `empty JSON input`：JSON 只在正常结束写出；不要 SIGKILL，实时观察改用 JSONL；
+- I/O 无报告：确认目录非 tmpfs/overlay、fio 为 direct+libaio，并检查 I/O health/inflight；
+- 内存无报告：普通异常必须同时有系统压力和进程贡献，单纯 RSS 增长不足；
+- 锁初始化失败：确认 `do_futex` fentry/fexit，且 root 能从 `/proc/kallsyms` 读到非零地址；
+- 锁无报告：确认同一非零 lock address 在窗口内至少有两个 waiter，不要把单个正常条件变量等待或 waker 推断为竞争/持锁者；
+- `sudo ... no new privileges`：只能在宿主或允许提权的环境运行；
+- stress-ng 包失败：运行顶层 `setup_env.sh --no-build` 使用本地构建版本。
+
+## 9. 清理
 
 ```bash
 make test-local-clean

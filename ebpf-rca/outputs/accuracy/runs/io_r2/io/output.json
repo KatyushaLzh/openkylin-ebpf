@@ -4,117 +4,57 @@
     "device": "8:0 sda"
   },
   "key_metrics": {
-    "avg_lat_ms": 0.21,
-    "iops": 39,
-    "max_lat_ms": 0.52,
-    "p99_lat_ms": 0.52,
-    "queue_depth": 0,
-    "throughput_mbps": 0.95
+    "avg_lat_ms": 16.93,
+    "iops": 227,
+    "max_lat_ms": 268.44,
+    "p99_lat_ms": 268.44,
+    "queue_depth": 23,
+    "throughput_mbps": 136.02
   },
   "time_window": {
-    "start": "2026-07-08T09:07:46Z",
-    "end": "2026-07-08T09:07:47Z"
+    "start": "2026-07-09T12:10:33Z",
+    "end": "2026-07-09T12:10:34Z"
   },
-  "suspected_root_cause": "I/O 时延抖动，疑似热点设备访问集中或页缓存失效导致回源磁盘",
-  "confidence": 0.78,
+  "suspected_root_cause": "随机读写压力导致设备队列拥堵（队列深度 23，队列过深）",
+  "confidence": 0.9,
   "evidence_chain": [
     {
       "type": "metric",
       "name": "p99_lat_ms",
-      "value": 0.52,
+      "value": 268.44,
       "threshold": 0.5,
       "desc": "请求完成时延 P99"
     },
     {
       "type": "metric",
       "name": "avg_lat_ms",
-      "value": 0.21,
+      "value": 16.93,
       "desc": "平均完成时延"
     },
     {
       "type": "metric",
       "name": "max_lat_ms",
-      "value": 0.52,
+      "value": 268.44,
       "desc": "最大完成时延"
     },
     {
       "type": "metric",
       "name": "iops",
-      "value": 39,
+      "value": 227,
       "desc": "每秒完成请求数"
     },
     {
       "type": "metric",
       "name": "throughput_mbps",
-      "value": 0.95,
+      "value": 136.02,
       "desc": "吞吐(MB/s)"
     },
     {
       "type": "metric",
       "name": "queue_depth",
-      "value": 0,
+      "value": 23,
       "desc": "当前在途请求数(队列深度)"
     }
   ],
-  "suggestion": "排查热点文件/设备访问模式，增大缓存命中或顺序化访问；必要时分散负载到多设备"
-}
-{
-  "anomaly_type": "I/O延迟抖动",
-  "related_object": {
-    "device": "8:0 sda"
-  },
-  "key_metrics": {
-    "avg_lat_ms": 2.86,
-    "iops": 8848,
-    "max_lat_ms": 1073.74,
-    "p99_lat_ms": 1.05,
-    "queue_depth": 13,
-    "throughput_mbps": 294.71
-  },
-  "time_window": {
-    "start": "2026-07-08T09:07:49Z",
-    "end": "2026-07-08T09:07:50Z"
-  },
-  "suspected_root_cause": "I/O 时延抖动，疑似热点设备访问集中或页缓存失效导致回源磁盘",
-  "confidence": 0.78,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "p99_lat_ms",
-      "value": 1.05,
-      "threshold": 0.5,
-      "desc": "请求完成时延 P99"
-    },
-    {
-      "type": "metric",
-      "name": "avg_lat_ms",
-      "value": 2.86,
-      "desc": "平均完成时延"
-    },
-    {
-      "type": "metric",
-      "name": "max_lat_ms",
-      "value": 1073.74,
-      "desc": "最大完成时延"
-    },
-    {
-      "type": "metric",
-      "name": "iops",
-      "value": 8848,
-      "desc": "每秒完成请求数"
-    },
-    {
-      "type": "metric",
-      "name": "throughput_mbps",
-      "value": 294.71,
-      "desc": "吞吐(MB/s)"
-    },
-    {
-      "type": "metric",
-      "name": "queue_depth",
-      "value": 13,
-      "desc": "当前在途请求数(队列深度)"
-    }
-  ],
-  "suggestion": "排查热点文件/设备访问模式，增大缓存命中或顺序化访问；必要时分散负载到多设备"
+  "suggestion": "降低并发/队列深度(iodepth)，或评估更高 IOPS 的存储；排查是否随机小块写密集"
 }

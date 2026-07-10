@@ -7,6 +7,7 @@ set -u
 DURATION="60"
 OUT_DIR="outputs/repro"
 TOOL="./bin/ebpf-rca"
+COMPACT_TOOL="./bin/rca-report-compact"
 SUDO="sudo"
 FORMAT="json"
 INTERVAL="1s"
@@ -23,7 +24,7 @@ Options:
   --duration seconds      workload duration, default: 60
   --out DIR               default: outputs/repro
   --tool PATH             default: ./bin/ebpf-rca
-  --format json|yaml|md   default: json
+  --format json           formal archive format; YAML/Markdown remain CLI display formats
   --interval DURATION     default: 1s
   --warmup seconds        delay between tool start and workload start, default: 3
   --margin seconds        extra tool runtime after workload, default: 5
@@ -46,6 +47,11 @@ while [[ $# -gt 0 ]]; do
     *) echo "Unknown option: $1" >&2; usage; exit 2;;
   esac
 done
+
+if [[ "$FORMAT" != "json" ]]; then
+  echo "run_all_repro only accepts --format json because archived PASS results require strict schema validation" >&2
+  exit 2
+fi
 
 duration_seconds() {
   local raw="$1"
@@ -75,12 +81,16 @@ SUMMARY="$OUT_DIR/repro_summary.md"
 CSV="$OUT_DIR/repro_summary.csv"
 
 CLEANUP_PIDS=()
+STARTED_WORKLOAD_PID=""
+STARTED_KILLER_PID=""
+STARTED_TOOL_PID=""
+FAILED=0
 
 cleanup() {
   local pid
   for pid in "${CLEANUP_PIDS[@]:-}"; do
     if [[ -n "$pid" ]]; then
-      kill "$pid" >/dev/null 2>&1 || true
+      if kill "$pid" >/dev/null 2>&1; then :; fi
     fi
   done
 }
@@ -90,6 +100,20 @@ trap 'cleanup; exit 130' INT TERM
 
 track_pid() {
   CLEANUP_PIDS+=("$1")
+}
+
+stop_pid() {
+  local pid="$1"
+  if [[ -n "$pid" ]]; then
+    if kill -0 "$pid" >/dev/null 2>&1; then
+      if kill "$pid" >/dev/null 2>&1; then :; fi
+      sleep 1
+      if kill -0 "$pid" >/dev/null 2>&1; then
+        if kill -9 "$pid" >/dev/null 2>&1; then :; fi
+      fi
+    fi
+    if wait "$pid" >/dev/null 2>&1; then :; fi
+  fi
 }
 
 need_cmd() {
@@ -139,8 +163,9 @@ run_workload() {
         fi
         local fio_path="${IO_PATH:-$OUT_DIR/raw/io-fio-test.img}"
         fio --name=rca-score-io --filename="$fio_path" --size="${IO_SIZE:-512M}" \
-          --rw=randrw --rwmixread=70 --bs=4k --iodepth=32 --numjobs=2 \
-          --runtime="$seconds" --time_based --group_reporting
+          --rw=randrw --rwmixread=70 --bs=4k --direct=1 --ioengine=libaio \
+          --iodepth=64 --numjobs=4 --runtime="$seconds" --time_based \
+          --group_reporting --output-format=json
         local rc=$?
         rm -f "$fio_path"
         return "$rc"
@@ -183,6 +208,65 @@ run_workload() {
   } >"$log" 2>&1
 }
 
+start_workload() {
+  local scenario="$1" seconds="$2" log="$3"
+  STARTED_WORKLOAD_PID=""
+  STARTED_KILLER_PID=""
+  echo "[workload] scenario=$scenario duration=${seconds}s" >"$log"
+  case "$scenario" in
+    mem)
+      if ! find_stress_ng; then
+        echo "stress-ng not found; run make deps or install stress-ng" >>"$log"
+        return 127
+      fi
+      "$STRESS_NG_BIN" --vm 2 --vm-bytes "${MEM_BYTES:-80%}" --vm-keep --timeout "${seconds}s" --metrics-brief >>"$log" 2>&1 &
+      ;;
+    lock)
+      if ! find_stress_ng; then
+        echo "stress-ng not found; run make deps or install stress-ng" >>"$log"
+        return 127
+      fi
+      if "$STRESS_NG_BIN" --help 2>/dev/null | grep -q -- '--mutex'; then
+        "$STRESS_NG_BIN" --mutex 8 --timeout "${seconds}s" --metrics-brief >>"$log" 2>&1 &
+      else
+        "$STRESS_NG_BIN" --futex 8 --timeout "${seconds}s" --metrics-brief >>"$log" 2>&1 &
+      fi
+      ;;
+    syscall)
+      if ! need_cmd dd; then
+        echo "dd is required for syscall workload" >>"$log"
+        return 127
+      fi
+      dd if=/dev/zero of=/dev/null bs=1 count=200000000 >>"$log" 2>&1 &
+      STARTED_WORKLOAD_PID=$!
+      track_pid "$STARTED_WORKLOAD_PID"
+      (
+        sleep "$seconds"
+        if kill "$STARTED_WORKLOAD_PID" >/dev/null 2>&1; then :; fi
+      ) &
+      STARTED_KILLER_PID=$!
+      track_pid "$STARTED_KILLER_PID"
+      return 0
+      ;;
+    *)
+      echo "start_workload only supports mem, lock, and syscall; got $scenario" >>"$log"
+      return 2
+      ;;
+  esac
+  STARTED_WORKLOAD_PID=$!
+  track_pid "$STARTED_WORKLOAD_PID"
+}
+
+normalize_workload_status() {
+  local scenario="$1" status="$2"
+  if [[ "$scenario" == "syscall" ]]; then
+    case "$status" in
+      0|124|137|143) printf '0\n'; return;;
+    esac
+  fi
+  printf '%s\n' "$status"
+}
+
 tool_args_for_scenario() {
   local scenario="$1" output="$2"
   TOOL_ARGS=(
@@ -203,14 +287,22 @@ tool_args_for_scenario() {
   esac
 }
 
+add_target_pid_for_scenario() {
+  local scenario="$1" target_pid="$2"
+  case "$scenario" in
+    mem|lock|syscall) TOOL_ARGS+=(--target-pid "$target_pid");;
+  esac
+}
+
 start_tool() {
   local log="$1"
+  STARTED_TOOL_PID=""
   if [[ -n "$SUDO" ]]; then
     "$SUDO" -n "${TOOL_ARGS[@]}" >"$log" 2>&1 &
   else
     "${TOOL_ARGS[@]}" >"$log" 2>&1 &
   fi
-  printf '%s\n' "$!"
+  STARTED_TOOL_PID=$!
 }
 
 require_tool_privileges() {
@@ -229,15 +321,48 @@ wait_or_stop() {
   local i
   for i in $(seq 1 "$limit"); do
     if ! kill -0 "$pid" >/dev/null 2>&1; then
-      wait "$pid" >/dev/null 2>&1 || true
-      return 0
+      local status
+      wait "$pid" >/dev/null 2>&1
+      status=$?
+      return "$status"
     fi
     sleep 1
   done
-  kill "$pid" >/dev/null 2>&1 || true
+  if kill "$pid" >/dev/null 2>&1; then :; fi
   sleep 1
-  kill -9 "$pid" >/dev/null 2>&1 || true
-  wait "$pid" >/dev/null 2>&1 || true
+  if kill -0 "$pid" >/dev/null 2>&1; then
+    if kill -9 "$pid" >/dev/null 2>&1; then :; fi
+  fi
+  if wait "$pid" >/dev/null 2>&1; then :; fi
+  return 124
+}
+
+compact_report() {
+  local raw="$1" final="$2" log="$3"
+  local tmp="${final}.tmp.$$"
+  rm -f "$final" "$tmp"
+  if [[ ! -s "$raw" ]]; then
+    return 1
+  fi
+  if [[ ! -x "$COMPACT_TOOL" ]]; then
+    echo "[compact] strict validator $COMPACT_TOOL not found" >"$log"
+    return 1
+  fi
+  if ! "$COMPACT_TOOL" --input "$raw" --output "$tmp" >"$log" 2>&1; then
+    rm -f "$tmp"
+    return 1
+  fi
+  if [[ ! -s "$tmp" ]]; then
+    echo "[compact] validator produced empty output" >>"$log"
+    rm -f "$tmp"
+    return 1
+  fi
+  mv "$tmp" "$final"
+}
+
+finalize_report() {
+  local raw="$1" final="$2" log="$3"
+  compact_report "$raw" "$final" "$log"
 }
 
 echo 'scenario,status,tool_output,workload_log,started_at,ended_at,note' >"$CSV"
@@ -254,28 +379,92 @@ echo 'scenario,status,tool_output,workload_log,started_at,ended_at,note' >"$CSV"
 
 run_one() {
   local scenario="$1"
-  local ext="$FORMAT"
-  [[ "$FORMAT" == "yml" ]] && ext="yaml"
-  [[ "$FORMAT" == "markdown" ]] && ext="md"
+  local ext="json"
   local out="$OUT_DIR/${scenario}_report.${ext}"
+  local raw_out="$OUT_DIR/raw/${scenario}_report_raw.${ext}"
   local tool_log="$OUT_DIR/raw/${scenario}_tool.log"
+  local compact_log="$OUT_DIR/raw/${scenario}_compact.log"
   local workload_log="$OUT_DIR/raw/${scenario}_workload.log"
-  local started ended status note pid workload_status
+  local started ended status note pid workload_pid workload_status start_status tool_status finalize_status
 
   started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  rm -f "$out" "$tool_log" "$workload_log"
+  rm -f "$out" "$raw_out" "$tool_log" "$compact_log" "$workload_log"
+
+  if [[ "$scenario" == "mem" || "$scenario" == "lock" || "$scenario" == "syscall" ]]; then
+    echo "[repro] $scenario: start pure workload for ${DURATION_SEC}s"
+    start_workload "$scenario" "$DURATION_SEC" "$workload_log"
+    start_status=$?
+    workload_pid="$STARTED_WORKLOAD_PID"
+    if [[ "$start_status" -ne 0 || -z "$workload_pid" ]]; then
+      ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      status="FAIL"
+      note="workload start failed; exit=$start_status"
+      FAILED=1
+      printf '%s,%s,%s,%s,%s,%s,"%s"\n' "$scenario" "$status" "$out" "$workload_log" "$started" "$ended" "$note" >>"$CSV"
+      printf '| %s | %s | `%s` | `%s` | %s |\n' "$scenario" "$status" "$out" "$workload_log" "$note" >>"$SUMMARY"
+      return
+    fi
+
+    echo "[repro] $scenario: start ebpf-rca with --target-pid $workload_pid for ${TOOL_DURATION_SEC}s"
+    tool_args_for_scenario "$scenario" "$raw_out"
+    add_target_pid_for_scenario "$scenario" "$workload_pid"
+    start_tool "$tool_log"
+    pid="$STARTED_TOOL_PID"
+    track_pid "$pid"
+
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      tool_status=0
+      wait "$pid" >/dev/null 2>&1
+      tool_status=$?
+      stop_pid "$workload_pid"
+      stop_pid "$STARTED_KILLER_PID"
+      ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      status="FAIL"
+      note="tool exited before workload completed; exit=$tool_status; target_pid=$workload_pid"
+      FAILED=1
+      printf '%s,%s,%s,%s,%s,%s,"%s"\n' "$scenario" "$status" "$out" "$workload_log" "$started" "$ended" "$note" >>"$CSV"
+      printf '| %s | %s | `%s` | `%s` | %s |\n' "$scenario" "$status" "$out" "$workload_log" "$note" >>"$SUMMARY"
+      return
+    fi
+
+    wait "$workload_pid" >/dev/null 2>&1
+    workload_status="$(normalize_workload_status "$scenario" "$?")"
+    stop_pid "$STARTED_KILLER_PID"
+    tool_status=0
+    wait_or_stop "$pid" "$((MARGIN_SEC + 5))" || tool_status=$?
+    finalize_status=0
+    finalize_report "$raw_out" "$out" "$compact_log" || finalize_status=$?
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    if [[ "$tool_status" -eq 0 && "$workload_status" -eq 0 && "$finalize_status" -eq 0 ]]; then
+      status="PASS"
+      note="tool/workload succeeded and output passed strict compaction; raw=$raw_out; target_pid=$workload_pid"
+    else
+      status="FAIL"
+      note="tool=$tool_status workload=$workload_status validation=$finalize_status; target_pid=$workload_pid"
+      FAILED=1
+    fi
+
+    printf '%s,%s,%s,%s,%s,%s,"%s"\n' "$scenario" "$status" "$out" "$workload_log" "$started" "$ended" "$note" >>"$CSV"
+    printf '| %s | %s | `%s` | `%s` | %s |\n' "$scenario" "$status" "$out" "$workload_log" "$note" >>"$SUMMARY"
+    return
+  fi
 
   echo "[repro] $scenario: start ebpf-rca for ${TOOL_DURATION_SEC}s"
-  tool_args_for_scenario "$scenario" "$out"
-  pid="$(start_tool "$tool_log")"
+  tool_args_for_scenario "$scenario" "$raw_out"
+  start_tool "$tool_log"
+  pid="$STARTED_TOOL_PID"
   track_pid "$pid"
   sleep "$WARMUP_SEC"
 
   if ! kill -0 "$pid" >/dev/null 2>&1; then
-    wait "$pid" >/dev/null 2>&1 || true
+    tool_status=0
+    wait "$pid" >/dev/null 2>&1
+    tool_status=$?
     ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     status="FAIL"
-    note="tool exited before workload; see raw logs"
+    note="tool exited before workload; exit=$tool_status; see raw logs"
+    FAILED=1
     printf '%s,%s,%s,%s,%s,%s,"%s"\n' "$scenario" "$status" "$out" "$workload_log" "$started" "$ended" "$note" >>"$CSV"
     printf '| %s | %s | `%s` | `%s` | %s |\n' "$scenario" "$status" "$out" "$workload_log" "$note" >>"$SUMMARY"
     return
@@ -285,18 +474,19 @@ run_one() {
   run_workload "$scenario" "$DURATION_SEC" "$workload_log"
   workload_status=$?
 
-  wait_or_stop "$pid" "$((MARGIN_SEC + WARMUP_SEC + 5))"
+  tool_status=0
+  wait_or_stop "$pid" "$((MARGIN_SEC + WARMUP_SEC + 5))" || tool_status=$?
+  finalize_status=0
+  finalize_report "$raw_out" "$out" "$compact_log" || finalize_status=$?
   ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-  if [[ -s "$out" && "$workload_status" -eq 0 ]]; then
+  if [[ "$tool_status" -eq 0 && "$workload_status" -eq 0 && "$finalize_status" -eq 0 ]]; then
     status="PASS"
-    note="tool output generated"
-  elif [[ -s "$out" ]]; then
-    status="WARN"
-    note="tool output generated, workload exit=$workload_status"
+    note="tool/workload succeeded and output passed strict compaction; raw=$raw_out"
   else
     status="FAIL"
-    note="no tool output; see raw logs"
+    note="tool=$tool_status workload=$workload_status validation=$finalize_status"
+    FAILED=1
   fi
 
   printf '%s,%s,%s,%s,%s,%s,"%s"\n' "$scenario" "$status" "$out" "$workload_log" "$started" "$ended" "$note" >>"$CSV"
@@ -319,3 +509,4 @@ done
 } >>"$SUMMARY"
 
 echo "[repro] wrote $SUMMARY and $CSV"
+exit "$FAILED"

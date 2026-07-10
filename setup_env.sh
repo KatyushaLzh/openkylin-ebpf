@@ -87,9 +87,12 @@ sudo_apt_get() { sudo_env apt-get "$@"; }
 
 repair_dpkg_if_needed() {
     local audit
-    if ! audit="$(dpkg --audit 2>&1)"; then
-        if can_sudo; then
-            audit="$(sudo_env dpkg --audit 2>&1 || true)"
+	if ! audit="$(dpkg --audit 2>&1)"; then
+		if can_sudo; then
+			if ! audit="$(sudo_env dpkg --audit 2>&1)"; then
+				warn "sudo dpkg --audit 执行失败；若 apt 失败，请手动检查 dpkg 状态"
+				return 0
+			fi
         else
             warn "无法以当前用户检查 dpkg 状态；若 apt 失败，请手动执行: sudo -n env DEBIAN_FRONTEND=noninteractive dpkg --configure -a"
             return 0
@@ -122,10 +125,20 @@ fetch_url() {
 
 check_bin() {
     local name="$1" min_ver="${2:-}"
-    if have_cmd "$name"; then
-        local out ver
-        out=$("$name" --version 2>&1 || "$name" version 2>&1 || true)
-        ver=$(grep -oP '[0-9]+(\.[0-9]+)+' <<<"$out" | head -1 || true)
+	if have_cmd "$name"; then
+		local out ver
+		if out=$("$name" --version 2>&1); then
+			:
+		elif out=$("$name" version 2>&1); then
+			:
+		else
+			out=""
+		fi
+		if [[ "$out" =~ ([0-9]+(\.[0-9]+)+) ]]; then
+			ver="${BASH_REMATCH[1]}"
+		else
+			ver=""
+		fi
         if [[ -n "$min_ver" && -n "$ver" ]] && ! ver_ge "$ver" "$min_ver"; then
             warn "$name 版本 $ver < $min_ver，可能不兼容"
             return 1
@@ -205,9 +218,11 @@ fi
 step "Step 2: bpftool 准备"
 
 bpftool_ready() {
-    local out
-    have_cmd bpftool || return 1
-    out="$(bpftool version 2>&1 || true)"
+	local out
+	have_cmd bpftool || return 1
+	if ! out="$(bpftool version 2>&1)"; then
+		return 1
+	fi
     [[ "$out" == bpftool\ v* ]] && ! grep -q "WARNING: bpftool not found" <<<"$out"
 }
 
@@ -266,8 +281,10 @@ else
             BPFTOOL_BIN="$BPFTOOL_DIR/src/bpftool"
             # 尝试安装到系统（可选，无 sudo 则跳过）。后续仍使用本地完整路径，
             # 避免 openKylin 的 /usr/sbin/bpftool wrapper 被 PATH 命中。
-            if can_sudo; then
-                sudo -n make -C "$BPFTOOL_DIR/src" install 2>/dev/null || true
+			if can_sudo; then
+				if ! sudo -n make -C "$BPFTOOL_DIR/src" install 2>/dev/null; then
+					warn "bpftool 系统安装失败，将继续使用本地构建产物"
+				fi
             fi
             info "bpftool 编译成功: $BPFTOOL_BIN ($($BPFTOOL_BIN version 2>&1 | head -1)) ✓"
         else

@@ -20,10 +20,24 @@ echo "[repro] 启动 ebpf-rca 场景=mem（后台）..."
 sudo "$BIN" --scenario mem --interval 1s --threshold 15 --sustain 3 \
 	--format md --duration "${DUR}s" &
 RCA_PID=$!
+cleanup() {
+	if kill -0 "$RCA_PID" 2>/dev/null; then
+		if kill "$RCA_PID" 2>/dev/null; then :; fi
+	fi
+}
+trap cleanup EXIT
 
 sleep 2
 echo "[repro] 注入内存压力（官方脚本）..."
-"$STRESS_NG" --vm 4 --vm-bytes 80% --vm-keep --timeout "${DUR}s" --metrics-brief || true
+set +e
+"$STRESS_NG" --vm 4 --vm-bytes 80% --vm-keep --timeout "${DUR}s" --metrics-brief
+WORKLOAD_RC=$?
+wait "$RCA_PID" 2>/dev/null
+TOOL_RC=$?
+set -e
 
-wait "$RCA_PID" 2>/dev/null || true
+if [ "$WORKLOAD_RC" -ne 0 ] || [ "$TOOL_RC" -ne 0 ]; then
+	echo "[repro] 失败：workload=$WORKLOAD_RC tool=$TOOL_RC" >&2
+	exit 1
+fi
 echo "[repro] 完成。"

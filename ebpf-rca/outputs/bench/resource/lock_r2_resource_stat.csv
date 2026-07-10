@@ -1,8 +1,8 @@
 metric,value
-samples,63
-avg_cpu_percent,0.603
-max_cpu_percent,3.600
-avg_rss_kb,44249.397
-max_rss_kb,44448.000
-avg_mem_percent,0.700
-max_threads,7.000
+samples,66
+avg_cpu_percent,2.391
+max_cpu_percent,45.400
+avg_rss_kb,46140.242
+max_rss_kb,49840.000
+avg_mem_percent,0.726
+max_threads,8.000

@@ -1,555 +1,30 @@
 {
   "anomaly_type": "CPU异常占用",
   "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.82,
-    "ctx_switch_per_min": 83640,
-    "runq_wait_us": 0.14
-  },
-  "time_window": {
-    "start": "2026-07-08T06:36:57Z",
-    "end": "2026-07-08T06:36:58Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.82,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 83640,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0.14,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.82,
-    "ctx_switch_per_min": 93060,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:36:59Z",
-    "end": "2026-07-08T06:37:00Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.82,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 93060,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.86,
-    "ctx_switch_per_min": 44520,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:01Z",
-    "end": "2026-07-08T06:37:02Z"
-  },
-  "suspected_root_cause": "用户态计算热点导致 CPU 饱和（计算密集或异常 busy loop）",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.86,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 44520,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "定位用户态热点函数，优化算法或并行度；排查是否存在异常 busy loop"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.88,
-    "ctx_switch_per_min": 45600,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:03Z",
-    "end": "2026-07-08T06:37:04Z"
-  },
-  "suspected_root_cause": "用户态计算热点导致 CPU 饱和（计算密集或异常 busy loop）",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.88,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 45600,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "定位用户态热点函数，优化算法或并行度；排查是否存在异常 busy loop"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.81,
-    "ctx_switch_per_min": 81540,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:06Z",
-    "end": "2026-07-08T06:37:07Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.81,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 81540,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.87,
-    "ctx_switch_per_min": 67860,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:07Z",
-    "end": "2026-07-08T06:37:08Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.87,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 67860,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.86,
-    "ctx_switch_per_min": 51300,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:23Z",
-    "end": "2026-07-08T06:37:24Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.86,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 51300,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.84,
-    "ctx_switch_per_min": 60720,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:27Z",
-    "end": "2026-07-08T06:37:28Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.84,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 60720,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.83,
-    "ctx_switch_per_min": 59940,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:29Z",
-    "end": "2026-07-08T06:37:30Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.83,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 59940,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.81,
-    "ctx_switch_per_min": 62160,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:33Z",
-    "end": "2026-07-08T06:37:34Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.81,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 62160,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.85,
-    "ctx_switch_per_min": 37980,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:35Z",
-    "end": "2026-07-08T06:37:36Z"
-  },
-  "suspected_root_cause": "用户态计算热点导致 CPU 饱和（计算密集或异常 busy loop）",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.85,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 37980,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "定位用户态热点函数，优化算法或并行度；排查是否存在异常 busy loop"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.83,
-    "ctx_switch_per_min": 64560,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:37Z",
-    "end": "2026-07-08T06:37:38Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.83,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 64560,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.84,
-    "ctx_switch_per_min": 45780,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:39Z",
-    "end": "2026-07-08T06:37:40Z"
-  },
-  "suspected_root_cause": "用户态计算热点导致 CPU 饱和（计算密集或异常 busy loop）",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.84,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 45780,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "定位用户态热点函数，优化算法或并行度；排查是否存在异常 busy loop"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
+    "pid": 91604,
+    "tid": 91604,
     "comm": "stress-ng-cpu"
   },
   "key_metrics": {
     "cpu_util": 0.92,
-    "ctx_switch_per_min": 75600,
-    "runq_wait_us": 0
+    "ctx_switch_per_min": 79500,
+    "merged_report_count": 9,
+    "runq_wait_us": 0,
+    "suppressed_report_count": 8
   },
   "time_window": {
-    "start": "2026-07-08T06:37:41Z",
-    "end": "2026-07-08T06:37:42Z"
+    "start": "2026-07-09T12:54:27Z",
+    "end": "2026-07-09T12:55:17Z"
   },
   "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
   "confidence": 0.85,
   "evidence_chain": [
+    {
+      "type": "event",
+      "name": "suppressed_report_count",
+      "value": 8,
+      "desc": "同类报告聚合后被压缩的条数"
+    },
     {
       "type": "metric",
       "name": "cpu_util",
@@ -560,7 +35,7 @@
     {
       "type": "metric",
       "name": "ctx_switch_per_min",
-      "value": 75600,
+      "value": 79500,
       "desc": "采样窗口内上下文切换频次"
     },
     {
@@ -575,33 +50,41 @@
 {
   "anomaly_type": "CPU异常占用",
   "related_object": {
-    "pid": 66623,
-    "tid": 66623,
+    "pid": 91605,
+    "tid": 91605,
     "comm": "stress-ng-cpu"
   },
   "key_metrics": {
-    "cpu_util": 0.85,
-    "ctx_switch_per_min": 46500,
-    "runq_wait_us": 0
+    "cpu_util": 0.8,
+    "ctx_switch_per_min": 31500,
+    "merged_report_count": 8,
+    "runq_wait_us": 0,
+    "suppressed_report_count": 7
   },
   "time_window": {
-    "start": "2026-07-08T06:37:43Z",
-    "end": "2026-07-08T06:37:44Z"
+    "start": "2026-07-09T12:54:32Z",
+    "end": "2026-07-09T12:55:19Z"
   },
   "suspected_root_cause": "用户态计算热点导致 CPU 饱和（计算密集或异常 busy loop）",
   "confidence": 0.85,
   "evidence_chain": [
     {
+      "type": "event",
+      "name": "suppressed_report_count",
+      "value": 7,
+      "desc": "同类报告聚合后被压缩的条数"
+    },
+    {
       "type": "metric",
       "name": "cpu_util",
-      "value": 0.85,
+      "value": 0.8,
       "threshold": 0.8,
       "desc": "单核 CPU 占用率持续高于阈值"
     },
     {
       "type": "metric",
       "name": "ctx_switch_per_min",
-      "value": 46500,
+      "value": 31500,
       "desc": "采样窗口内上下文切换频次"
     },
     {
@@ -612,127 +95,4 @@
     }
   ],
   "suggestion": "定位用户态热点函数，优化算法或并行度；排查是否存在异常 busy loop"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66622,
-    "tid": 66622,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.83,
-    "ctx_switch_per_min": 57000,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:45Z",
-    "end": "2026-07-08T06:37:46Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.83,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 57000,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.81,
-    "ctx_switch_per_min": 52380,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:47Z",
-    "end": "2026-07-08T06:37:48Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.81,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 52380,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
-}
-{
-  "anomaly_type": "CPU异常占用",
-  "related_object": {
-    "pid": 66623,
-    "tid": 66623,
-    "comm": "stress-ng-cpu"
-  },
-  "key_metrics": {
-    "cpu_util": 0.86,
-    "ctx_switch_per_min": 75240,
-    "runq_wait_us": 0
-  },
-  "time_window": {
-    "start": "2026-07-08T06:37:53Z",
-    "end": "2026-07-08T06:37:54Z"
-  },
-  "suspected_root_cause": "线程频繁上下文切换，疑似锁竞争或频繁唤醒导致 CPU 调度开销升高",
-  "confidence": 0.85,
-  "evidence_chain": [
-    {
-      "type": "metric",
-      "name": "cpu_util",
-      "value": 0.86,
-      "threshold": 0.8,
-      "desc": "单核 CPU 占用率持续高于阈值"
-    },
-    {
-      "type": "metric",
-      "name": "ctx_switch_per_min",
-      "value": 75240,
-      "desc": "采样窗口内上下文切换频次"
-    },
-    {
-      "type": "metric",
-      "name": "runq_wait_us",
-      "value": 0,
-      "desc": "平均运行队列等待时间(微秒)"
-    }
-  ],
-  "suggestion": "排查热点锁与频繁唤醒路径，降低上下文切换；可结合锁竞争场景进一步定位"
 }

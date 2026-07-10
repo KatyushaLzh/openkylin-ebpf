@@ -3,8 +3,8 @@ json_parse_ok,true
 json_error,
 missing_required,
 evidence_len,6
-p99_latency,33.55
-avg_latency,5.11
-throughput,243.01
-iops,295.0
+p99_latency,134.22
+avg_latency,12.94
+throughput,221.05
+iops,353.0
 confidence,0.9

@@ -1,8 +1,6 @@
 package detector
 
 import (
-	"time"
-
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/collector"
 	"github.com/KatyushaLzh/openkylin-ebpf/ebpf-rca/internal/syscalls"
 )
@@ -14,9 +12,8 @@ const defaultIgnoredSyscallComm = "ebpf-rca"
 
 // SyscallSignal 表示一次已确认的系统调用热点异常。
 type SyscallSignal struct {
-	Sample      collector.SyscallSample
-	WindowStart time.Time
-	WindowEnd   time.Time
+	Sample collector.SyscallSample
+	Window collector.ObservationWindow
 }
 
 // SyscallDetector 检测高频或高耗时的 (进程, syscall) 热点。
@@ -24,7 +21,7 @@ type SyscallDetector struct {
 	CallsPerSecFloor float64
 	SustainTicks     int
 	counters         map[uint64]int
-	firstSeen        map[uint64]time.Time
+	firstSeen        map[uint64]collector.ObservationWindow
 	fired            map[uint64]bool
 }
 
@@ -37,7 +34,7 @@ func NewSyscallDetector(callsPerSecFloor float64, sustain int) *SyscallDetector 
 		CallsPerSecFloor: callsPerSecFloor,
 		SustainTicks:     sustain,
 		counters:         make(map[uint64]int),
-		firstSeen:        make(map[uint64]time.Time),
+		firstSeen:        make(map[uint64]collector.ObservationWindow),
 		fired:            make(map[uint64]bool),
 	}
 }
@@ -45,12 +42,12 @@ func NewSyscallDetector(callsPerSecFloor float64, sustain int) *SyscallDetector 
 func scSigKey(pid, nr uint32) uint64 { return uint64(pid)<<32 | uint64(nr) }
 
 // Detect 处理一个窗口的样本，返回本窗口新触发的热点信号。
-func (d *SyscallDetector) Detect(samples []collector.SyscallSample, now time.Time) []SyscallSignal {
+func (d *SyscallDetector) Detect(samples []collector.SyscallSample) []SyscallSignal {
 	active := make(map[uint64]bool, len(samples))
 	var signals []SyscallSignal
 
 	for _, s := range samples {
-		if isDefaultIgnoredSyscallComm(s.Comm) {
+		if !s.Window.Valid() || isDefaultIgnoredSyscallComm(s.Comm) {
 			continue
 		}
 		hot := isSyscallHot(s, d.CallsPerSecFloor)
@@ -60,16 +57,12 @@ func (d *SyscallDetector) Detect(samples []collector.SyscallSample, now time.Tim
 		k := scSigKey(s.Pid, s.Nr)
 		active[k] = true
 		if d.counters[k] == 0 {
-			d.firstSeen[k] = now
+			d.firstSeen[k] = s.Window
 		}
 		d.counters[k]++
 		if d.counters[k] >= d.SustainTicks && !d.fired[k] {
 			d.fired[k] = true
-			signals = append(signals, SyscallSignal{
-				Sample:      s,
-				WindowStart: d.firstSeen[k],
-				WindowEnd:   now,
-			})
+			signals = append(signals, SyscallSignal{Sample: s, Window: d.firstSeen[k].Extend(s.Window)})
 		}
 	}
 

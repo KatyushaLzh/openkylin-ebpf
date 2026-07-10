@@ -1,30 +1,30 @@
 {
   "anomaly_type": "内存抖动",
   "related_object": {
-    "pid": 120641,
+    "pid": 84419,
     "comm": "stress-ng-vm"
   },
   "key_metrics": {
-    "anon_rss_delta_kb": 196592,
-    "anon_rss_kb": 255736,
-    "direct_reclaim_count": 0,
+    "anon_rss_delta_kb": 64976,
+    "anon_rss_kb": 256804,
+    "direct_reclaim_count": 32,
     "kswapd_wakes": 0,
     "major_fault": 0,
-    "mem_available_pct": 23.29,
-    "rss_delta_kb": 197256,
-    "rss_kb": 257576
+    "mem_available_pct": 27.62,
+    "rss_delta_kb": 65580,
+    "rss_kb": 258628
   },
   "time_window": {
-    "start": "2026-07-08T09:09:30Z",
-    "end": "2026-07-08T09:09:31Z"
+    "start": "2026-07-09T12:12:20Z",
+    "end": "2026-07-09T12:12:21Z"
   },
-  "suspected_root_cause": "业务进程 RSS/匿名 RSS 在采样窗口内快速增长，疑似内存突增或泄漏导致系统压力上升",
-  "confidence": 0.8,
+  "suspected_root_cause": "业务进程持续申请内存触发直接回收(direct reclaim)，导致回收压力上升与内存抖动",
+  "confidence": 0.9,
   "evidence_chain": [
     {
       "type": "metric",
       "name": "mem_available_pct",
-      "value": 23.29,
+      "value": 27.62,
       "threshold": 40,
       "desc": "可用内存占比持续低于阈值"
     },
@@ -37,13 +37,13 @@
     {
       "type": "event",
       "name": "direct_reclaim_count",
-      "value": 0,
+      "value": 32,
       "desc": "肇事进程窗口内直接回收次数(分配时被迫回收)"
     },
     {
       "type": "metric",
       "name": "direct_reclaim_ms",
-      "value": 0,
+      "value": 76.09,
       "desc": "肇事进程直接回收累计耗时"
     },
     {
@@ -55,33 +55,33 @@
     {
       "type": "metric",
       "name": "minor_fault",
-      "value": 0,
+      "value": 15745,
       "desc": "窗口内 minor page fault 增量"
     },
     {
       "type": "metric",
       "name": "rss_kb",
-      "value": 257576,
+      "value": 258628,
       "desc": "进程 RSS 采样值(kB)"
     },
     {
       "type": "metric",
       "name": "anon_rss_kb",
-      "value": 255736,
+      "value": 256804,
       "desc": "进程匿名 RSS 采样值(kB)"
     },
     {
       "type": "metric",
       "name": "rss_delta_kb",
-      "value": 197256,
+      "value": 65580,
       "desc": "窗口内 RSS 增量(kB)"
     },
     {
       "type": "metric",
       "name": "anon_rss_delta_kb",
-      "value": 196592,
+      "value": 64976,
       "desc": "窗口内匿名 RSS 增量(kB)"
     }
   ],
-  "suggestion": "检查该进程近期分配路径、缓存增长与对象生命周期；必要时加 cgroup 限额并采样 heap/smaps"
+  "suggestion": "排查该进程的内存申请/泄漏；限制其内存(cgroup memory.high)，或扩容内存、降低工作集"
 }

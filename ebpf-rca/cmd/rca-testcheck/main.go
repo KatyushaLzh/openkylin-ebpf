@@ -2,11 +2,13 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,44 +33,64 @@ type testSpec struct {
 }
 
 type scenarioSpec struct {
-	Kind                  string             `yaml:"kind"`
-	Description           string             `yaml:"description"`
-	Oracle                string             `yaml:"oracle"`
-	ExpectedAnomalyTypes  []string           `yaml:"expected_anomaly_types"`
-	RelatedObject         string             `yaml:"related_object"`
-	RequiredKeyMetrics    []string           `yaml:"required_key_metrics"`
-	RequiredEvidenceNames []string           `yaml:"required_evidence_names"`
-	NumericFloors         map[string]float64 `yaml:"numeric_floors"`
-	MaxReports            int                `yaml:"max_reports"`
-	MaxExtraReports       int                `yaml:"max_extra_reports"`
-	MinReportCount        int                `yaml:"min_report_count"`
-	RequiredContains      []string           `yaml:"required_contains"`
+	Kind                   string             `yaml:"kind"`
+	Description            string             `yaml:"description"`
+	Oracle                 string             `yaml:"oracle"`
+	ExpectedAnomalyTypes   []string           `yaml:"expected_anomaly_types"`
+	ExpectedRootCauseCodes []string           `yaml:"expected_root_cause_codes"`
+	RelatedObject          string             `yaml:"related_object"`
+	RequiredKeyMetrics     []string           `yaml:"required_key_metrics"`
+	RequiredEvidenceNames  []string           `yaml:"required_evidence_names"`
+	NumericFloors          map[string]float64 `yaml:"numeric_floors"`
+	MaxReports             int                `yaml:"max_reports"`
+	MaxExtraReports        int                `yaml:"max_extra_reports"`
+	MinReportCount         int                `yaml:"min_report_count"`
+	RequiredContains       []string           `yaml:"required_contains"`
 }
 
 type checkResult struct {
-	Scenario           string               `json:"scenario"`
-	Kind               string               `json:"kind"`
-	Passed             bool                 `json:"passed"`
-	ReportCount        int                  `json:"report_count"`
-	MatchedAnomalyType string               `json:"matched_anomaly_type,omitempty"`
-	MatchedObject      schema.RelatedObject `json:"matched_object,omitempty"`
-	MatchedReports     []reportMatch        `json:"matched_reports,omitempty"`
-	ExtraReportCount   int                  `json:"extra_report_count,omitempty"`
-	ExtraReports       []reportMatch        `json:"extra_reports,omitempty"`
-	TruthSummary       string               `json:"truth_summary,omitempty"`
-	Warnings           []string             `json:"warnings,omitempty"`
-	Errors             []string             `json:"errors,omitempty"`
+	Scenario            string               `json:"scenario"`
+	Kind                string               `json:"kind"`
+	Passed              bool                 `json:"passed"`
+	EvaluationValid     bool                 `json:"evaluation_valid"`
+	ReportCount         int                  `json:"report_count"`
+	TypeMatch           bool                 `json:"type_match"`
+	RootCauseCodeMatch  bool                 `json:"root_cause_code_match"`
+	WorkloadObjectMatch bool                 `json:"workload_object_match"`
+	TruePositive        int                  `json:"true_positive"`
+	TrueNegative        int                  `json:"true_negative"`
+	FalsePositive       int                  `json:"false_positive"`
+	FalseNegative       int                  `json:"false_negative"`
+	TopReportIndex      int                  `json:"top_report_index,omitempty"`
+	TopReport           *reportMatch         `json:"top_report,omitempty"`
+	MatchedAnomalyType  string               `json:"matched_anomaly_type,omitempty"`
+	MatchedObject       schema.RelatedObject `json:"matched_object,omitempty"`
+	MatchedReports      []reportMatch        `json:"matched_reports,omitempty"`
+	ExtraReportCount    int                  `json:"extra_report_count,omitempty"`
+	ExtraReports        []reportMatch        `json:"extra_reports,omitempty"`
+	TruthSummary        string               `json:"truth_summary,omitempty"`
+	Warnings            []string             `json:"warnings,omitempty"`
+	Errors              []string             `json:"errors,omitempty"`
 }
 
 type reportMatch struct {
-	Index       int                  `json:"index"`
-	AnomalyType string               `json:"anomaly_type"`
-	Object      schema.RelatedObject `json:"object"`
+	Index               int                  `json:"index"`
+	AnomalyType         string               `json:"anomaly_type"`
+	RootCauseCode       string               `json:"root_cause_code"`
+	Confidence          float64              `json:"confidence"`
+	Object              schema.RelatedObject `json:"object"`
+	TypeMatch           bool                 `json:"type_match"`
+	RootCauseCodeMatch  bool                 `json:"root_cause_code_match"`
+	WorkloadObjectMatch bool                 `json:"workload_object_match"`
+	FullMatch           bool                 `json:"full_match"`
+	Errors              []string             `json:"errors,omitempty"`
 }
 
 type groundTruth struct {
 	Scenario     string            `json:"scenario"`
 	RootPID      uint32            `json:"root_pid"`
+	LockAddress  uint64            `json:"lock_address,omitempty"`
+	Syscall      string            `json:"syscall,omitempty"`
 	PGID         uint32            `json:"pgid,omitempty"`
 	Session      uint32            `json:"session,omitempty"`
 	SampleStart  string            `json:"sample_start,omitempty"`
@@ -86,6 +108,7 @@ type procInfo struct {
 	pgid      uint32
 	session   uint32
 	startTime uint64
+	state     byte
 	comm      string
 }
 
@@ -110,6 +133,7 @@ func main() {
 	ioFile := flag.String("io-file", "", "I/O workload file path for --write-truth")
 	watchTruth := flag.Bool("watch", false, "with --write-truth, sample until root pid exits")
 	watchTimeout := flag.Duration("watch-timeout", 0, "max duration for --write-truth --watch; 0 means no explicit timeout")
+	requireSessionAll := flag.Bool("require-session-all", false, "require strict all-mode DiagnosticSession, product defaults, and clean collector health")
 	flag.Parse()
 
 	if *scenarioName == "" {
@@ -147,9 +171,9 @@ func main() {
 	switch spec.Kind {
 	case "positive":
 		truth := truthForScenario(truths, *scenarioName)
-		res = validatePositive(*scenarioName, spec, *inputPath, truth)
+		res = validatePositive(*scenarioName, spec, *inputPath, truth, *requireSessionAll)
 	case "negative":
-		res = validateNegative(*scenarioName, spec, *inputPath)
+		res = validateNegative(*scenarioName, spec, *inputPath, *requireSessionAll)
 	case "report":
 		res = validateMarkdownReport(*scenarioName, spec, *reportPath, truths)
 	default:
@@ -186,8 +210,8 @@ func loadScenario(path, name string) (scenarioSpec, error) {
 	return sc, nil
 }
 
-func validatePositive(name string, spec scenarioSpec, input string, truth *groundTruth) checkResult {
-	reports, err := readReports(input)
+func validatePositive(name string, spec scenarioSpec, input string, truth *groundTruth, requireSessionAll ...bool) checkResult {
+	reports, err := readReports(input, requireSessionAll...)
 	res := checkResult{Scenario: name, Kind: spec.Kind, ReportCount: len(reports)}
 	if truth != nil {
 		res.TruthSummary = truthSummary(*truth)
@@ -196,17 +220,52 @@ func validatePositive(name string, spec scenarioSpec, input string, truth *groun
 		res.Errors = append(res.Errors, err.Error())
 		return res
 	}
+	if truth == nil {
+		res.Errors = append(res.Errors, "independent workload ground truth is required")
+		return res
+	}
+	res.EvaluationValid = true
 	if len(reports) == 0 {
+		res.FalseNegative = 1
 		res.Errors = append(res.Errors, "no anomaly report emitted")
 		return res
 	}
 
 	var candidateErrs []string
+	topReportIndex := 0
+	for i := 1; i < len(reports); i++ {
+		if reports[i].Confidence > reports[topReportIndex].Confidence {
+			topReportIndex = i
+		}
+	}
 	for i, report := range reports {
+		typeMatch := contains(spec.ExpectedAnomalyTypes, report.AnomalyType)
+		codeMatch := contains(spec.ExpectedRootCauseCodes, report.RootCauseCode)
+		objectErrs := validateWorkloadOracle(name, report, truth)
+		objectMatch := len(objectErrs) == 0
+
 		errs := validateReport(report, spec)
-		errs = append(errs, validateGroundTruth(name, report.RelatedObject, truth)...)
+		errs = append(errs, objectErrs...)
+		m := reportMatch{
+			Index:               i + 1,
+			AnomalyType:         report.AnomalyType,
+			RootCauseCode:       report.RootCauseCode,
+			Confidence:          report.Confidence,
+			Object:              report.RelatedObject,
+			TypeMatch:           typeMatch,
+			RootCauseCodeMatch:  codeMatch,
+			WorkloadObjectMatch: objectMatch,
+			FullMatch:           len(errs) == 0,
+			Errors:              errs,
+		}
+		if i == topReportIndex {
+			res.TopReportIndex = i + 1
+			res.TopReport = &m
+			res.TypeMatch = typeMatch
+			res.RootCauseCodeMatch = codeMatch
+			res.WorkloadObjectMatch = objectMatch
+		}
 		if len(errs) == 0 {
-			m := reportMatch{Index: i + 1, AnomalyType: report.AnomalyType, Object: report.RelatedObject}
 			res.MatchedReports = append(res.MatchedReports, m)
 			if res.MatchedAnomalyType == "" {
 				res.MatchedAnomalyType = report.AnomalyType
@@ -214,34 +273,35 @@ func validatePositive(name string, spec scenarioSpec, input string, truth *groun
 			}
 			continue
 		}
-		res.ExtraReports = append(res.ExtraReports, reportMatch{
-			Index:       i + 1,
-			AnomalyType: report.AnomalyType,
-			Object:      report.RelatedObject,
-		})
+		res.ExtraReports = append(res.ExtraReports, m)
 		candidateErrs = append(candidateErrs, fmt.Sprintf("report %d: %s", i+1, strings.Join(errs, "; ")))
 	}
 	res.ExtraReportCount = len(res.ExtraReports)
+	res.FalsePositive = res.ExtraReportCount
 	if len(res.MatchedReports) > 0 {
+		res.TruePositive = 1
 		if res.ExtraReportCount > 0 {
-			res.Warnings = append(res.Warnings, fmt.Sprintf("%d extra report(s) did not match this scenario/truth", res.ExtraReportCount))
-		}
-		if spec.MaxExtraReports > 0 && res.ExtraReportCount > spec.MaxExtraReports {
-			res.Errors = append(res.Errors, fmt.Sprintf("expected at most %d extra reports, got %d", spec.MaxExtraReports, res.ExtraReportCount))
+			res.Errors = append(res.Errors, fmt.Sprintf("%d extra report(s) did not match expected type, root_cause_code and workload oracle", res.ExtraReportCount))
 		}
 		return res
 	}
+	res.FalseNegative = 1
 	res.Errors = append(res.Errors, "no report matched expected scenario")
 	res.Errors = append(res.Errors, candidateErrs...)
 	return res
 }
 
-func validateNegative(name string, spec scenarioSpec, input string) checkResult {
-	reports, err := readReports(input)
+func validateNegative(name string, spec scenarioSpec, input string, requireSessionAll ...bool) checkResult {
+	reports, err := readReports(input, requireSessionAll...)
 	res := checkResult{Scenario: name, Kind: spec.Kind, ReportCount: len(reports)}
 	if err != nil {
 		res.Errors = append(res.Errors, err.Error())
 		return res
+	}
+	res.EvaluationValid = true
+	res.FalsePositive = len(reports)
+	if len(reports) == 0 {
+		res.TrueNegative = 1
 	}
 	maxReports := spec.MaxReports
 	if len(reports) > maxReports {
@@ -290,37 +350,176 @@ func validateMarkdownReport(name string, spec scenarioSpec, reportPath string, t
 	return res
 }
 
-func readReports(path string) ([]schema.AnomalyReport, error) {
-	var r io.Reader
+func readReports(path string, requireSessionAll ...bool) ([]schema.AnomalyReport, error) {
+	requireFormal := len(requireSessionAll) > 0 && requireSessionAll[0]
+	var data []byte
+	var err error
 	if path == "" {
-		r = os.Stdin
+		data, err = io.ReadAll(os.Stdin)
 	} else {
-		f, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		r = f
+		data, err = os.ReadFile(path)
+	}
+	if err != nil {
+		return nil, err
+	}
+	data = bytes.TrimSpace(data)
+	if len(data) == 0 {
+		return nil, fmt.Errorf("empty JSON input")
 	}
 
-	dec := json.NewDecoder(r)
-	dec.UseNumber()
-	var reports []schema.AnomalyReport
-	for {
-		var report schema.AnomalyReport
-		err := dec.Decode(&report)
-		if errors.Is(err, io.EOF) {
-			break
+	// A single top-level value is either the JSON session envelope or one report.
+	dec := json.NewDecoder(bytes.NewReader(data))
+	var raw json.RawMessage
+	if err := dec.Decode(&raw); err == nil {
+		var extra json.RawMessage
+		if err := dec.Decode(&extra); err == io.EOF {
+			return decodeTopLevelReports(raw, requireFormal)
 		}
+	}
+	if requireFormal {
+		return nil, fmt.Errorf("formal accuracy input must be exactly one DiagnosticSession JSON value")
+	}
+
+	// Multiple values are accepted only as strict, one-object-per-line JSONL.
+	var reports []schema.AnomalyReport
+	scanner := bufio.NewScanner(bytes.NewReader(data))
+	scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)
+	line := 0
+	for scanner.Scan() {
+		line++
+		trimmed := bytes.TrimSpace(scanner.Bytes())
+		if len(trimmed) == 0 {
+			continue
+		}
+		report, err := decodeStrictReport(trimmed)
 		if err != nil {
-			return nil, fmt.Errorf("decode JSON report stream: %w", err)
+			return nil, fmt.Errorf("decode JSONL line %d: %w", line, err)
 		}
 		reports = append(reports, report)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("read JSONL: %w", err)
+	}
+	if len(reports) == 0 {
+		return nil, fmt.Errorf("JSONL contains no reports")
 	}
 	return reports, nil
 }
 
+func decodeTopLevelReports(data []byte, requireFormal bool) ([]schema.AnomalyReport, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return nil, fmt.Errorf("top-level JSON must be an object: %w", err)
+	}
+	if _, ok := fields["reports"]; ok {
+		session, err := schema.DecodeDiagnosticSessionJSON(data)
+		if err != nil {
+			return nil, fmt.Errorf("decode DiagnosticSession: %w", err)
+		}
+		if requireFormal {
+			if err := validateFormalAccuracySession(session); err != nil {
+				return nil, fmt.Errorf("formal DiagnosticSession: %w", err)
+			}
+		}
+		return session.Reports, nil
+	}
+	if requireFormal {
+		return nil, fmt.Errorf("formal accuracy input must be a DiagnosticSession, not a standalone report")
+	}
+	report, err := decodeStrictReport(data)
+	if err != nil {
+		return nil, err
+	}
+	return []schema.AnomalyReport{report}, nil
+}
+
+func validateFormalAccuracySession(session schema.DiagnosticSession) error {
+	if session.Configuration.Scenario != "all" || session.Configuration.AllowPartial || session.Partial {
+		return fmt.Errorf("requires scenario=all, allow_partial=false, partial=false")
+	}
+	if session.Configuration.TargetPID != 0 {
+		return fmt.Errorf("target_pid must be 0 for the primary accuracy operating point")
+	}
+	if session.Configuration.IntervalMS != 1000 || session.Configuration.Sustain != 3 {
+		return fmt.Errorf("requires product defaults interval_ms=1000 and sustain=3")
+	}
+	defaults := map[string]float64{
+		"cpu_util": 0.9, "io_p99_ms": 20, "mem_available_floor_pct": 15,
+		"lock_offcpu_ratio": 0.3, "syscall_calls_per_sec": 10000,
+	}
+	if len(session.Configuration.Thresholds) != len(defaults) {
+		return fmt.Errorf("threshold set must contain exactly the five product defaults")
+	}
+	for name, want := range defaults {
+		if got := session.Configuration.Thresholds[name]; got != want {
+			return fmt.Errorf("threshold %s=%v, want product default %v", name, got, want)
+		}
+	}
+	if !session.Environment.BTF {
+		return fmt.Errorf("runtime environment did not expose BTF")
+	}
+	expected := map[string]bool{"cpu": true, "io": true, "mem": true, "lock": true, "syscall": true}
+	if len(session.Collectors) != len(expected) {
+		return fmt.Errorf("expected five collector health records, got %d", len(session.Collectors))
+	}
+	for _, status := range session.Collectors {
+		if !expected[status.Name] {
+			return fmt.Errorf("unexpected collector %q", status.Name)
+		}
+		delete(expected, status.Name)
+		if !status.Requested || !status.Initialized || status.State != "stopped" || status.PollCount == 0 {
+			return fmt.Errorf("collector %s lifecycle is not a clean stopped run", status.Name)
+		}
+		if status.Error != "" || status.HealthError != "" {
+			return fmt.Errorf("collector %s reported error=%q health_error=%q", status.Name, status.Error, status.HealthError)
+		}
+		if status.Health == nil || status.Health.Counters == nil {
+			return fmt.Errorf("collector %s is missing a health snapshot/counters", status.Name)
+		}
+		if status.Health.MapMemoryBytes == 0 {
+			return fmt.Errorf("collector %s reported zero map memory", status.Name)
+		}
+		requiredCounters := map[string][]string{
+			"cpu": {"map_update_fail", "stack_capture_fail", "program_stats_unavailable", "map_memory_estimated"},
+			"io": {"duplicate_issue", "completion_miss", "map_update_fail", "partial_completion", "io_error",
+				"current_inflight", "average_queue_depth_milli", "program_stats_unavailable", "map_memory_estimated"},
+			"mem": {"reclaim_start_update_fail", "reclaim_end_miss", "map_update_fail", "oom_update_fail",
+				"target_update_fail", "map_memory_estimated"},
+			"lock": {"futex_update_fail", "offcpu_update_fail", "map_update_fail", "stack_capture_fail",
+				"target_update_fail", "map_memory_estimated"},
+			"syscall": {"start_update_fail", "exit_miss", "map_update_fail", "target_update_fail", "map_memory_estimated"},
+		}
+		for _, name := range requiredCounters[status.Name] {
+			if _, ok := status.Health.Counters[name]; !ok {
+				return fmt.Errorf("collector %s health is missing counter %s", status.Name, name)
+			}
+		}
+		for name, value := range status.Health.Counters {
+			fatal := strings.HasSuffix(name, "update_fail") || strings.HasSuffix(name, "_miss") ||
+				name == "program_stats_unavailable" || name == "current_inflight" || name == "io_error"
+			if fatal && value != 0 {
+				return fmt.Errorf("collector %s integrity counter %s=%d, want 0", status.Name, name, value)
+			}
+		}
+	}
+	if len(expected) != 0 {
+		return fmt.Errorf("missing collector health records")
+	}
+	return nil
+}
+
+func decodeStrictReport(data []byte) (schema.AnomalyReport, error) {
+	return schema.DecodeAnomalyReportJSON(data)
+}
+
 func buildGroundTruth(scenario string, rootPID uint32, ioFile string, watch bool, watchTimeout time.Duration) (groundTruth, error) {
+	rootStartTime, err := readProcStartTime(rootPID)
+	if err != nil {
+		return groundTruth{}, fmt.Errorf("bind root pid %d process instance: %w", rootPID, err)
+	}
+	if rootStartTime == 0 {
+		return groundTruth{}, fmt.Errorf("bind root pid %d process instance: zero starttime", rootPID)
+	}
 	truth := groundTruth{
 		Scenario:     scenario,
 		RootPID:      rootPID,
@@ -340,16 +539,26 @@ func buildGroundTruth(scenario string, rootPID uint32, ioFile string, watch bool
 	}
 
 	for i := 0; ; i++ {
+		rootAlive := false
+		rootPresent := false
+		rootIdentityReadable := false
 		snap, err := readProcSnapshot()
 		if err == nil {
-			desc := collectDescendants(rootPID, snap)
+			rootInfo, present := snap[rootPID]
+			rootPresent = present
+			rootIdentityReadable = present && rootInfo.startTime != 0
+			rootAlive = processInstanceInSnapshot(rootPID, rootStartTime, snap)
+			desc := map[uint32]bool{}
+			if rootAlive {
+				desc = collectDescendants(rootPID, snap)
+			}
 			if len(desc) > 0 {
 				sawRoot = true
 				if root, ok := snap[rootPID]; ok {
 					truth.PGID = root.pgid
 					truth.Session = root.session
 				}
-			} else if watch && sawRoot {
+			} else if watch && sawRoot && (!rootPresent || (rootIdentityReadable && !rootAlive)) {
 				break
 			}
 			for pid := range desc {
@@ -385,10 +594,27 @@ func buildGroundTruth(scenario string, rootPID uint32, ioFile string, watch bool
 		if !watch && i+1 >= truthSampleCount {
 			break
 		}
-		if watch && !deadline.IsZero() && time.Now().After(deadline) {
+		if watch && !deadline.IsZero() && !time.Now().Before(deadline) {
+			if err != nil {
+				return truth, fmt.Errorf("truth watch deadline reached without a readable process snapshot: %w", err)
+			}
+			if rootPresent && !rootIdentityReadable {
+				return truth, fmt.Errorf("truth watch deadline reached but root pid %d starttime was unreadable", rootPID)
+			}
+			if rootAlive {
+				return truth, fmt.Errorf("truth watch timeout: root pid %d process instance starttime=%d is still alive", rootPID, rootStartTime)
+			}
 			break
 		}
-		time.Sleep(truthSampleDelay)
+		sleepFor := truthSampleDelay
+		if watch && !deadline.IsZero() {
+			if remaining := time.Until(deadline); remaining < sleepFor {
+				sleepFor = remaining
+			}
+		}
+		if sleepFor > 0 {
+			time.Sleep(sleepFor)
+		}
 	}
 
 	truth.AllowedTGIDs = sortedUint32Keys(tgids)
@@ -416,6 +642,11 @@ func buildGroundTruth(scenario string, rootPID uint32, ioFile string, watch bool
 	return truth, nil
 }
 
+func processInstanceInSnapshot(root uint32, startTime uint64, snap map[uint32]procInfo) bool {
+	info, ok := snap[root]
+	return ok && startTime != 0 && info.startTime == startTime && info.state != 'Z'
+}
+
 func readProcSnapshot() (map[uint32]procInfo, error) {
 	entries, err := os.ReadDir("/proc")
 	if err != nil {
@@ -436,10 +667,11 @@ func readProcSnapshot() (map[uint32]procInfo, error) {
 			continue
 		}
 		info := procInfo{ppid: ppid}
-		if pgid, session, startTime, comm, err := readProcStat(pid); err == nil {
+		if pgid, session, startTime, state, comm, err := readProcStat(pid); err == nil {
 			info.pgid = pgid
 			info.session = session
 			info.startTime = startTime
+			info.state = state
 			info.comm = comm
 		}
 		out[pid] = info
@@ -469,40 +701,44 @@ func readProcPPID(pid uint32) (uint32, error) {
 	return 0, fmt.Errorf("PPid not found for pid %d", pid)
 }
 
-func readProcStat(pid uint32) (pgid, session uint32, startTime uint64, comm string, err error) {
+func readProcStat(pid uint32) (pgid, session uint32, startTime uint64, state byte, comm string, err error) {
 	b, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
 	if err != nil {
-		return 0, 0, 0, "", err
+		return 0, 0, 0, 0, "", err
 	}
 	text := string(b)
 	open := strings.IndexByte(text, '(')
 	close := strings.LastIndexByte(text, ')')
 	if open < 0 || close <= open {
-		return 0, 0, 0, "", fmt.Errorf("malformed stat for pid %d", pid)
+		return 0, 0, 0, 0, "", fmt.Errorf("malformed stat for pid %d", pid)
 	}
 	comm = text[open+1 : close]
 	rest := strings.Fields(strings.TrimSpace(text[close+1:]))
 	// rest[0] is state(field3), rest[2] pgid(field5), rest[3] session(field6), rest[19] starttime(field22).
 	if len(rest) < 20 {
-		return 0, 0, 0, comm, fmt.Errorf("stat for pid %d has too few fields", pid)
+		return 0, 0, 0, 0, comm, fmt.Errorf("stat for pid %d has too few fields", pid)
 	}
+	if len(rest[0]) != 1 {
+		return 0, 0, 0, 0, comm, fmt.Errorf("stat for pid %d has malformed state", pid)
+	}
+	state = rest[0][0]
 	pgid64, err := strconv.ParseUint(rest[2], 10, 32)
 	if err != nil {
-		return 0, 0, 0, comm, err
+		return 0, 0, 0, 0, comm, err
 	}
 	session64, err := strconv.ParseUint(rest[3], 10, 32)
 	if err != nil {
-		return 0, 0, 0, comm, err
+		return 0, 0, 0, 0, comm, err
 	}
 	startTime, err = strconv.ParseUint(rest[19], 10, 64)
 	if err != nil {
-		return 0, 0, 0, comm, err
+		return 0, 0, 0, 0, comm, err
 	}
-	return uint32(pgid64), uint32(session64), startTime, comm, nil
+	return uint32(pgid64), uint32(session64), startTime, state, comm, nil
 }
 
 func readProcStartTime(pid uint32) (uint64, error) {
-	_, _, startTime, _, err := readProcStat(pid)
+	_, _, startTime, _, _, err := readProcStat(pid)
 	return startTime, err
 }
 
@@ -667,6 +903,12 @@ func validateReport(r schema.AnomalyReport, spec scenarioSpec) []string {
 	if !contains(spec.ExpectedAnomalyTypes, r.AnomalyType) {
 		errs = append(errs, fmt.Sprintf("anomaly_type %q not in %v", r.AnomalyType, spec.ExpectedAnomalyTypes))
 	}
+	if !contains(spec.ExpectedRootCauseCodes, r.RootCauseCode) {
+		errs = append(errs, fmt.Sprintf("root_cause_code %q not in %v", r.RootCauseCode, spec.ExpectedRootCauseCodes))
+	}
+	if r.RootCauseCode == schema.RootCauseLockFutexContention && r.RelatedObject.LockAddress == 0 {
+		errs = append(errs, "related_object.lock_address is required for lock.futex_contention")
+	}
 	if r.SuspectedRootCause == "" {
 		errs = append(errs, "suspected_root_cause is empty")
 	}
@@ -797,14 +1039,31 @@ func valuesEquivalent(a, b interface{}) bool {
 
 func validateGroundTruth(scenario string, obj schema.RelatedObject, truth *groundTruth) []string {
 	if truth == nil {
-		return nil
+		return []string{"workload ground truth is required"}
 	}
 	switch scenario {
-	case "cpu", "lock":
-		if truthAllowsPID(*truth, obj.Tid, true) || truthAllowsPID(*truth, obj.Pid, true) {
-			return nil
+	case "cpu":
+		if !truthAllowsPID(*truth, obj.Pid, false) {
+			return []string{fmt.Sprintf("related_object.pid is not a workload TGID: object=%s truth=%s", objectSummary(obj), truthSummary(*truth))}
 		}
-		return []string{fmt.Sprintf("related_object pid/tid does not match workload tids: object=%s truth=%s", objectSummary(obj), truthSummary(*truth))}
+		if obj.Tid != 0 && !truthAllowsPID(*truth, obj.Tid, true) {
+			return []string{fmt.Sprintf("related_object.tid is not a workload TID: object=%s truth=%s", objectSummary(obj), truthSummary(*truth))}
+		}
+		return nil
+	case "lock":
+		var errs []string
+		if !truthAllowsPID(*truth, obj.Pid, false) {
+			errs = append(errs, fmt.Sprintf("related_object.pid is not a workload TGID: object=%s truth=%s", objectSummary(obj), truthSummary(*truth)))
+		}
+		if !truthAllowsPID(*truth, obj.Tid, true) {
+			errs = append(errs, fmt.Sprintf("related_object.tid is not a workload TID: object=%s truth=%s", objectSummary(obj), truthSummary(*truth)))
+		}
+		if truth.LockAddress == 0 {
+			errs = append(errs, "lock ground truth is missing the explicit futex address")
+		} else if obj.LockAddress != truth.LockAddress {
+			errs = append(errs, fmt.Sprintf("related_object.lock_address=0x%x, want workload futex 0x%x", obj.LockAddress, truth.LockAddress))
+		}
+		return errs
 	case "mem", "syscall":
 		if truthAllowsPID(*truth, obj.Pid, false) {
 			return nil
@@ -818,6 +1077,21 @@ func validateGroundTruth(scenario string, obj schema.RelatedObject, truth *groun
 	default:
 		return nil
 	}
+}
+
+func validateWorkloadOracle(scenario string, report schema.AnomalyReport, truth *groundTruth) []string {
+	errs := validateGroundTruth(scenario, report.RelatedObject, truth)
+	if scenario != "syscall" || truth == nil {
+		return errs
+	}
+	if truth.Syscall == "" {
+		return append(errs, "syscall ground truth is missing the injected syscall name")
+	}
+	got, ok := report.KeyMetrics["syscall"].(string)
+	if !ok || got != truth.Syscall {
+		errs = append(errs, fmt.Sprintf("key_metrics.syscall=%q, want injected syscall %q", got, truth.Syscall))
+	}
+	return errs
 }
 
 func validateMarkdownTruth(text, scenario string, truth groundTruth) error {
@@ -862,9 +1136,9 @@ func expectedAnomalyType(scenario string) string {
 	case "io":
 		return "I/O延迟抖动"
 	case "mem":
-		return "内存抖动"
+		return "内存回收压力"
 	case "lock":
-		return "锁竞争"
+		return "futex锁竞争"
 	case "syscall":
 		return "系统调用热点"
 	default:
@@ -916,26 +1190,37 @@ func validateRelatedObject(obj schema.RelatedObject, want string) []string {
 }
 
 func asFloat64(v interface{}) (float64, bool) {
+	var value float64
 	switch x := v.(type) {
 	case float64:
-		return x, true
+		value = x
 	case float32:
-		return float64(x), true
+		value = float64(x)
 	case int:
-		return float64(x), true
+		value = float64(x)
+	case int32:
+		value = float64(x)
 	case int64:
-		return float64(x), true
+		value = float64(x)
+	case uint:
+		value = float64(x)
+	case uint32:
+		value = float64(x)
 	case uint64:
-		return float64(x), true
+		value = float64(x)
 	case json.Number:
 		f, err := x.Float64()
-		return f, err == nil
-	case string:
-		f, err := strconv.ParseFloat(x, 64)
-		return f, err == nil
+		if err != nil {
+			return 0, false
+		}
+		value = f
 	default:
 		return 0, false
 	}
+	if math.IsNaN(value) || math.IsInf(value, 0) {
+		return 0, false
+	}
+	return value, true
 }
 
 func extractReportCount(text string) (int, bool) {
@@ -1008,6 +1293,9 @@ func objectSummary(obj schema.RelatedObject) string {
 	if obj.Device != "" {
 		parts = append(parts, "device="+obj.Device)
 	}
+	if obj.LockAddress != 0 {
+		parts = append(parts, fmt.Sprintf("lock_address=0x%x", obj.LockAddress))
+	}
 	if len(parts) == 0 {
 		return "<empty>"
 	}
@@ -1025,6 +1313,12 @@ func truthSummary(truth groundTruth) string {
 	}
 	if truth.IODevice != "" {
 		parts = append(parts, "io_device="+truth.IODevice)
+	}
+	if truth.LockAddress != 0 {
+		parts = append(parts, fmt.Sprintf("lock_address=0x%x", truth.LockAddress))
+	}
+	if truth.Syscall != "" {
+		parts = append(parts, "syscall="+truth.Syscall)
 	}
 	return strings.Join(parts, " ")
 }
@@ -1072,7 +1366,7 @@ func writeSummary(path string, res checkResult) error {
 
 func printHuman(res checkResult) {
 	if res.Passed {
-		fmt.Printf("PASS %s (%s): %d report(s)", res.Scenario, res.Kind, res.ReportCount)
+		fmt.Printf("PASS %s (%s): %d report(s), TP=%d TN=%d FP=%d FN=%d", res.Scenario, res.Kind, res.ReportCount, res.TruePositive, res.TrueNegative, res.FalsePositive, res.FalseNegative)
 		if res.MatchedAnomalyType != "" {
 			fmt.Printf(", matched=%s", res.MatchedAnomalyType)
 		}
@@ -1085,7 +1379,11 @@ func printHuman(res checkResult) {
 		}
 		return
 	}
-	fmt.Printf("FAIL %s (%s): %d report(s)\n", res.Scenario, res.Kind, res.ReportCount)
+	fmt.Printf("FAIL %s (%s): %d report(s), TP=%d TN=%d FP=%d FN=%d", res.Scenario, res.Kind, res.ReportCount, res.TruePositive, res.TrueNegative, res.FalsePositive, res.FalseNegative)
+	if res.Kind == "positive" && res.EvaluationValid {
+		fmt.Printf(", type=%t code=%t object=%t", res.TypeMatch, res.RootCauseCodeMatch, res.WorkloadObjectMatch)
+	}
+	fmt.Println()
 	for _, err := range res.Errors {
 		fmt.Println("  - " + err)
 	}

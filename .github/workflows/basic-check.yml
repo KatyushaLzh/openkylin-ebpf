@@ -21,16 +21,27 @@ jobs:
           cache-dependency-path: ebpf-rca/go.sum
 
       - name: Script syntax
-        run: bash -n scripts/env_check.sh scripts/run_all_repro.sh scripts/bench_overhead.sh
+        run: bash -n scripts/*.sh
 
       - name: Python syntax
-        run: python3 -m py_compile scripts/validate_report.py
+        run: python3 -m py_compile scripts/*.py
+
+      - name: Evaluation unit tests
+        run: python3 -m unittest scripts/eval_accuracy_test.py scripts/validate_report_test.py
 
       - name: Schema syntax
-        run: python3 -m json.tool schemas/anomaly_report.schema.json >/dev/null
+        run: |
+          python3 -m json.tool schemas/anomaly_report.schema.json >/dev/null
+          python3 -m json.tool schemas/diagnostic_session.schema.json >/dev/null
+
+      - name: Tracked bpf2go artifacts
+        run: make verify-generated
 
       - name: Go tests
         run: go test ./...
+
+      - name: Clean-clone build
+        run: make build test-checker test-load
 
       - name: Docs check
         run: make docs-check

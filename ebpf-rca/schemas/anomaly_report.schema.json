@@ -3,9 +3,10 @@
   "$id": "https://gitlink.org.cn/ebpf-rca/schemas/anomaly_report.schema.json",
   "title": "ebpf-rca AnomalyReport",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": [
     "anomaly_type",
+    "root_cause_code",
     "related_object",
     "key_metrics",
     "time_window",
@@ -18,30 +19,62 @@
     "anomaly_type": {
       "type": "string",
       "minLength": 1,
-      "description": "异常类型，例如 CPU异常占用、I/O延迟抖动、内存抖动、锁竞争、系统调用热点。"
+      "description": "异常类型，例如 CPU异常占用、I/O延迟抖动、内存回收压力、OOM事件、futex锁竞争、内核同步等待、系统调用热点。"
+    },
+    "root_cause_code": {
+      "type": "string",
+      "enum": [
+        "cpu.compute_hotspot", "cpu.scheduler_pressure",
+        "io.queue_congestion", "io.device_latency",
+        "mem.reclaim_pressure", "mem.oom_victim",
+        "lock.futex_contention", "lock.kernel_sync_wait",
+        "syscall.high_frequency", "syscall.high_latency"
+      ]
     },
     "related_object": {
       "type": "object",
-      "description": "关联对象。进程/线程类异常至少包含 pid/tid/comm；设备类异常可包含 dev/device；syscall 场景可包含 syscall。",
+      "description": "关联对象。pid 固定表示 TGID，tid 表示线程；I/O 使用 device；futex 使用 lock_address；无法进程归因的内存异常使用 scope=system。",
       "minProperties": 1,
-      "additionalProperties": true
+      "additionalProperties": false,
+      "properties": {
+        "pid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "tid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+        "comm": { "type": "string", "minLength": 1 },
+        "device": { "type": "string", "minLength": 1 },
+        "lock_address": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 },
+        "scope": { "type": "string", "enum": ["process", "target_tree", "system"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scope": { "const": "system" } }, "required": ["scope"] },
+          "then": {
+            "type": "object",
+            "not": {
+              "anyOf": [
+                { "type": "object", "properties": { "pid": {} }, "required": ["pid"] },
+                { "type": "object", "properties": { "tid": {} }, "required": ["tid"] },
+                { "type": "object", "properties": { "lock_address": {} }, "required": ["lock_address"] }
+              ]
+            }
+          }
+        }
+      ]
     },
     "key_metrics": {
       "type": "object",
-      "description": "关键指标。必须保留可量化数值，例如 cpu_util、p99_latency_ms、iops、offcpu_ratio、syscall_count。",
+      "description": "关键指标。必须保留可量化数值，例如 process_cpu_cores、p99_lat_ms、avg_queue_depth、offcpu_ratio、calls_per_sec。",
       "minProperties": 1,
-      "additionalProperties": {
-        "type": ["number", "integer", "string", "boolean", "object", "array", "null"]
-      }
+      "additionalProperties": {}
     },
     "time_window": {
       "type": "object",
-      "required": ["start", "end"],
+      "required": ["start", "end", "elapsed_ms"],
       "properties": {
-        "start": { "type": "string", "minLength": 1 },
-        "end": { "type": "string", "minLength": 1 }
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "elapsed_ms": { "type": "number", "exclusiveMinimum": 0 }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "suspected_root_cause": {
       "type": "string",
@@ -60,11 +93,11 @@
       "description": "证据链。建议至少包含 metric/event/stack 中的两类，保证结论可回溯。",
       "items": {
         "type": "object",
-        "minProperties": 1,
-        "additionalProperties": true,
+        "required": ["type", "name"],
+        "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "description": "metric/event/stack/log/rule" },
-          "name": { "type": "string" },
+          "type": { "type": "string", "minLength": 1, "description": "metric/event/stack/log/rule" },
+          "name": { "type": "string", "minLength": 1 },
           "value": {},
           "threshold": {},
           "desc": { "type": "string" },
@@ -77,5 +110,46 @@
       "minLength": 1,
       "description": "建议性结论，给出可执行排查/优化方向。"
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "root_cause_code": { "const": "lock.futex_contention" } }, "required": ["root_cause_code"] },
+      "then": { "type": "object", "properties": { "related_object": {
+        "type": "object",
+        "required": ["pid", "tid", "lock_address"],
+        "properties": {
+          "pid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+          "tid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+          "lock_address": { "type": "integer", "minimum": 1, "maximum": 18446744073709551615 }
+        }
+      } } }
+    },
+    {
+      "if": { "properties": { "root_cause_code": { "enum": ["cpu.compute_hotspot", "cpu.scheduler_pressure", "lock.kernel_sync_wait"] } }, "required": ["root_cause_code"] },
+      "then": { "type": "object", "properties": { "related_object": {
+        "type": "object",
+        "required": ["pid", "tid"],
+        "properties": {
+          "pid": { "type": "integer", "minimum": 1, "maximum": 4294967295 },
+          "tid": { "type": "integer", "minimum": 1, "maximum": 4294967295 }
+        }
+      } } }
+    },
+    {
+      "if": { "properties": { "root_cause_code": { "enum": ["io.queue_congestion", "io.device_latency"] } }, "required": ["root_cause_code"] },
+      "then": { "type": "object", "properties": { "related_object": {
+        "type": "object",
+        "required": ["device"],
+        "properties": { "device": { "type": "string", "minLength": 1 } }
+      } } }
+    },
+    {
+      "if": { "properties": { "root_cause_code": { "enum": ["syscall.high_frequency", "syscall.high_latency"] } }, "required": ["root_cause_code"] },
+      "then": { "type": "object", "properties": { "related_object": {
+        "type": "object",
+        "required": ["pid"],
+        "properties": { "pid": { "type": "integer", "minimum": 1, "maximum": 4294967295 } }
+      } } }
+    }
+  ]
 }

@@ -1,1 +1,1 @@
-[ebpf-rca] 场景=mem interval=1s avail_floor=40% target_pid=120515 sustain=1
+[ebpf-rca] 场景=mem interval=1s avail_floor=40% target_pid=84260 sustain=1

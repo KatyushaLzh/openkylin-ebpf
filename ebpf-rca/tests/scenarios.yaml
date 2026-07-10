@@ -1,85 +1,128 @@
 scenarios:
   cpu:
     kind: positive
-    description: CPU saturation injected by stress-ng matrix workload.
+    description: One pinned deterministic rca-testload thread saturates a CPU without unrelated labels.
     runner:
       default_duration_seconds: 30
-      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.80", "--sustain", "2"]
-      workload: "stress-ng --cpu $(nproc) --cpu-method matrixprod --timeout ${DURATION}s --metrics-brief"
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload cpu --duration ${DURATION}s"
     expected_anomaly_types: ["CPU异常占用"]
+    expected_root_cause_codes: ["cpu.compute_hotspot", "cpu.scheduler_pressure"]
     oracle: process_tids
     related_object: process
-    required_key_metrics: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
-    required_evidence_names: ["cpu_util", "ctx_switch_per_min", "runq_wait_us"]
+    required_key_metrics: ["top_thread_cpu_cores", "process_cpu_cores", "ctx_switch_per_min", "runq_wait_us", "runq_count"]
+    required_evidence_names: ["top_thread_cpu_cores", "process_cpu_cores", "ctx_switch_per_min", "runq_wait_us"]
     numeric_floors:
-      cpu_util: 0.75
+      process_cpu_cores: 0.75
 
   io:
     kind: positive
     description: Random block I/O latency injected by fio.
     runner:
       default_duration_seconds: 30
-      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "0.50", "--sustain", "1"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "fio randrw on a real filesystem path"
     expected_anomaly_types: ["I/O延迟抖动"]
+    expected_root_cause_codes: ["io.queue_congestion"]
     oracle: device
     related_object: device
-    required_key_metrics: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
-    required_evidence_names: ["p99_lat_ms", "avg_lat_ms", "iops", "queue_depth"]
+    required_key_metrics: ["p99_lat_ms", "avg_lat_ms", "iops", "avg_queue_depth", "queue_depth"]
+    required_evidence_names: ["p99_lat_ms", "avg_lat_ms", "iops", "avg_queue_depth", "queue_depth"]
     numeric_floors:
       p99_lat_ms: 0.5
+      avg_queue_depth: 16
       iops: 1
 
   mem:
     kind: positive
-    description: Memory pressure injected by stress-ng vm workers.
+    description: Dynamic worker-scaled anonymous-memory growth with safe per-worker pacing, sustained after MemAvailable crosses 15%.
     runner:
       default_duration_seconds: 30
-      tool_args: ["--scenario", "mem", "--interval", "1s", "--threshold", "40", "--sustain", "1"]
-      workload: "stress-ng --vm 2 --vm-bytes 80% --vm-keep --timeout ${DURATION}s --metrics-brief"
-    expected_anomaly_types: ["内存抖动"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload mem-pressure --workers 8 --fast-rate-mib 128 --pressure-rate-mib 96 --target-available-pct 10 --duration ${DURATION}s"
+    expected_anomaly_types: ["内存回收压力", "OOM事件"]
+    expected_root_cause_codes: ["mem.reclaim_pressure", "mem.oom_victim"]
     oracle: process_tgids
     related_object: process
-    required_key_metrics: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
-    required_evidence_names: ["mem_available_pct", "kswapd_wakes", "direct_reclaim_count", "major_fault"]
+    required_key_metrics: ["mem_available_pct", "memory_psi_some_pct", "memory_psi_full_pct", "direct_reclaim_ms_per_sec", "direct_reclaim_count", "major_fault_per_sec", "anon_rss_growth_kb_per_sec"]
+    required_evidence_names: ["mem_available_pct", "memory_psi_some_pct", "memory_psi_full_pct", "direct_reclaim_ms_per_sec", "direct_reclaim_count", "major_fault_per_sec", "anon_rss_growth_kb_per_sec"]
 
   lock:
     kind: positive
-    description: Mutex contention injected by stress-ng.
+    description: Sustained contention on one explicit FUTEX_WAIT_PRIVATE word across eight OS threads.
     runner:
       default_duration_seconds: 30
-      tool_args: ["--scenario", "lock", "--interval", "1s", "--threshold", "0.10", "--sustain", "1"]
-      workload: "stress-ng --mutex 8 --timeout ${DURATION}s --metrics-brief"
-    expected_anomaly_types: ["锁竞争"]
-    oracle: process_tids
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload lock --threads 8 --duration ${DURATION}s (emits lock_address and waiter-TID oracle)"
+    expected_anomaly_types: ["futex锁竞争"]
+    expected_root_cause_codes: ["lock.futex_contention"]
+    oracle: futex_instance
     related_object: process
-    required_key_metrics: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
-    required_evidence_names: ["offcpu_ratio", "max_offcpu_ms", "block_count"]
+    required_key_metrics: ["lock_address", "offcpu_ratio", "total_wait_ms", "p99_wait_ms", "max_wait_ms", "waiter_count", "block_count"]
+    required_evidence_names: ["offcpu_ratio", "total_wait_ms", "p99_wait_ms", "max_wait_ms", "waiter_count", "block_count"]
     numeric_floors:
       offcpu_ratio: 0.05
+      waiter_count: 2
 
   syscall:
     kind: positive
-    description: High frequency read/write syscalls injected by dd with bs=1.
+    description: CPU-paced read syscalls above the product threshold without creating a CPU-hotspot co-label.
     runner:
       default_duration_seconds: 20
-      tool_args: ["--scenario", "syscall", "--interval", "1s", "--threshold", "1000", "--sustain", "1"]
-      workload: "timeout ${DURATION}s dd if=/dev/zero of=/dev/null bs=1 count=200000000"
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload syscall --rate 30000 --duration ${DURATION}s"
     expected_anomaly_types: ["系统调用热点"]
+    expected_root_cause_codes: ["syscall.high_frequency"]
     oracle: process_tgids
     related_object: process
     required_key_metrics: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
     required_evidence_names: ["syscall", "calls_per_sec", "avg_lat_us", "total_ms_per_sec"]
     numeric_floors:
-      calls_per_sec: 1000
+      calls_per_sec: 10000
 
   idle:
     kind: negative
-    description: Backward-compatible alias for idle CPU collector.
+    description: All collectors running at the product operating point with no injected workload.
     runner:
       default_duration_seconds: 15
-      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.95", "--sustain", "3"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "none"
+    max_reports: 0
+
+  normal_mem:
+    kind: negative
+    description: A one-time 128 MiB anonymous allocation that remains resident without system pressure.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload normal-mem --bytes 134217728"
+    max_reports: 0
+
+  normal_epoll:
+    kind: negative
+    description: One low-frequency epoll wait with a long timeout.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload epoll-wait"
+    max_reports: 0
+
+  normal_io_sleep:
+    kind: negative
+    description: A low-rate pipe reader sleeping in ordinary blocking read I/O.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload io-sleep --interval 250ms"
+    max_reports: 0
+
+  normal_io_seq:
+    kind: negative
+    description: Paced queue-depth-one sequential O_DIRECT writes.
+    runner:
+      default_duration_seconds: 15
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
+      workload: "rca-testload seq-direct-io --size 67108864 --block-size 131072 --interval 10ms"
     max_reports: 0
 
   idle_cpu:
@@ -87,7 +130,7 @@ scenarios:
     description: Idle CPU collector should not emit anomaly reports.
     runner:
       default_duration_seconds: 15
-      tool_args: ["--scenario", "cpu", "--interval", "1s", "--threshold", "0.95", "--sustain", "3"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "none"
     max_reports: 0
 
@@ -96,7 +139,7 @@ scenarios:
     description: Idle I/O collector should not emit anomaly reports.
     runner:
       default_duration_seconds: 15
-      tool_args: ["--scenario", "io", "--interval", "1s", "--threshold", "5", "--sustain", "2"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "none"
     max_reports: 0
 
@@ -105,7 +148,7 @@ scenarios:
     description: Idle lock collector should not emit anomaly reports.
     runner:
       default_duration_seconds: 15
-      tool_args: ["--scenario", "lock", "--interval", "1s", "--threshold", "0.30", "--sustain", "2"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "none"
     max_reports: 0
 
@@ -114,7 +157,7 @@ scenarios:
     description: Idle syscall collector should not emit anomaly reports.
     runner:
       default_duration_seconds: 15
-      tool_args: ["--scenario", "syscall", "--interval", "1s", "--threshold", "10000", "--sustain", "2"]
+      tool_args: ["--scenario", "all", "--allow-partial=false", "--interval", "1s", "--format", "json"]
       workload: "none"
     max_reports: 0
 

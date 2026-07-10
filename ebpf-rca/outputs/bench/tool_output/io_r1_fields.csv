@@ -2,9 +2,9 @@ field,value
 json_parse_ok,true
 json_error,
 missing_required,
-evidence_len,6
+evidence_len,7
 p99_latency,0.52
 avg_latency,0.12
-throughput,1.6
-iops,171.0
-confidence,0.78
+throughput,33.97
+iops,7084.0
+confidence,0.9

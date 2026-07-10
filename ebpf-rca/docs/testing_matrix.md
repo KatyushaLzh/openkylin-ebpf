@@ -1,78 +1,111 @@
 # ebpf-rca 准确性与复现测试矩阵
 
-本文件用于补技术报告第 4.1、4.4 节，重点证明异常识别正确率、根因定位正确率、低误报/低漏报。
+本矩阵定义正式评分 operating point。所有准确率主测试均运行五个 collector：
+`--scenario all --allow-partial=false`，使用产品默认阈值与 sustain，不传 `--target-pid`。
 
-## 1. 场景矩阵
+## 1. 正例矩阵
 
-| 编号 | 场景 | 注入负载 | 预期异常类型 | 预期根因关键词 | 必须出现的证据 |
+| 场景 | 独立负载 | 期望异常类型 | 允许的 `root_cause_code` | 对象 oracle | 必查证据 |
 |---|---|---|---|---|---|
-| 1 | CPU | `stress-ng --cpu ... matrixprod` | CPU异常占用 | 计算热点、busy loop、CPU 饱和 | cpu_util、tid/pid、time_window |
-| 2 | I/O | `fio randrw` | I/O延迟抖动 | 设备队列拥堵、P99 时延升高 | p99/avg latency、iops/throughput、queue_depth/dev |
-| 3 | 内存 | `stress-ng --vm` | 内存抖动/OOM风险 | direct reclaim、kswapd、缺页 | reclaim_count/time、available memory、pid/comm |
-| 4 | 锁竞争 | `stress-ng --mutex` | 锁竞争 | futex/mutex、off-CPU、唤醒链 | offcpu_ratio、block stack、waker/wakee |
-| 5 | syscall | `dd bs=1` 或高频 read/write | 系统调用热点 | read/write/poll/fsync 高频或高耗时 | syscall name/no、count、latency/cost |
+| CPU | `rca-testload cpu` 单个 pinned busy thread | `CPU异常占用` | `cpu.compute_hotspot` | workload TGID，Top TID | `process_cpu_cores`、`top_thread_cpu_cores`、`runq_count`、真实窗口 |
+| I/O 队列 | fio direct randrw，iodepth=64，numjobs=4 | `I/O延迟抖动` | `io.queue_congestion` | 测试文件所在块设备 | P99、`avg_queue_depth>=16`、IOPS/带宽、健康计数 |
+| 内存压力/OOM | `rca-testload mem-pressure` 按 MemAvailable 动态扩 worker、跨 15% 后持续缺页 | `内存回收压力` / `OOM事件` | `mem.reclaim_pressure` / `mem.oom_victim` | workload TGID；无法定位时只允许 system scope | PSI、vmstat、direct reclaim/匿名 RSS 增长/major fault；`mem-oracle.json` 证明跨压持续>=5s或 OOM victim |
+| futex 竞争 | `rca-testload lock --threads 8`（低 CPU、同一显式 futex word） | `futex锁竞争` | `lock.futex_contention` | workload 输出的 `uaddr`、TGID/TID，waiter>=2 | waiter count、总等待、P99/max、Top waiters、futex op、`lock-oracle.json` |
+| syscall 热点 | 定速 `read`，结束时校验 achieved rate | `系统调用热点` | `syscall.high_frequency` | workload TGID 与 exact syscall name | calls/s、avg/P99/max、total ms/s；`syscall-oracle.json` |
 
-## 2. 测试步骤
+每类至少 10 轮。不同根因变体应拆分用例：调度压力用例才接受 `cpu.scheduler_pressure`，设备服务
+时延用例只能接受 `io.device_latency`；不能把同一异常大类下的任意 code 都算命中。
+正式矩阵默认 `--workload deterministic`；`stress-ng` 只作为额外现实压力测试，不参与替代上述
+低交叉标签、独立 oracle 的主结果。
 
-评分复现链路使用 `run_all_repro.sh` 内置纯 workload，不调用 `scripts/repro_*.sh`；后者保留为“启动工具 + 注入负载”的演示脚本。运行前需要 root 或可非交互执行 `sudo -n`。
+## 2. 负例矩阵
 
-```bash
-sudo -n bash scripts/env_check.sh
-bash scripts/run_all_repro.sh --duration 60 --format json
-python3 scripts/validate_report.py outputs/repro/*.json
-```
+| 场景 | 负载/状态 | 不应触发的原因 | 通过条件 |
+|---|---|---|---|
+| `idle` | 不注入 workload | 无持续异常 | `reports=[]`，五个 collector 全部正常停止 |
+| `normal_mem` | 可容纳、无 PSI/reclaim 压力的 128 MiB 匿名申请 | 有 RSS 增长但不满足“系统压力 + 进程贡献” | 无内存报告 |
+| `normal_epoll` | 长 timeout、低调用频率 epoll wait | 等待 wall time 长不是热点 | 无 syscall/锁误报 |
+| `normal_io_sleep` | 低频 pipe reader 的普通阻塞 read | 无 futex 地址或同步栈；低频正常 read 等待也不是 syscall 热点 | `reports=[]`，尤其无锁/syscall 误报 |
+| `normal_io_seq` | queue-depth-one、paced、O_DIRECT 顺序写 | 无高 P99 或队列拥堵 | 无 I/O 报告 |
 
-`validate_report.py` 支持单个 JSON、JSON 数组、JSON Lines，以及 `json.Encoder.SetIndent` 产生的连续 pretty JSON 对象流；同一文件内所有 report 都会被检查。
+每类至少 10 轮；任一额外报告均计 FP，而不是 warning。
 
-## 3. 2026-07-08 单轮复现留档
-
-| 场景 | 是否跑通 | 是否识别正确异常 | 根因是否命中 | 证据链是否充足 | 输出文件 | 备注 |
-|---|---|---|---|---|---|---|
-| CPU | PASS | PASS | PASS | PASS | `outputs/repro/cpu_report.json` | `CPU异常占用`，多窗口输出 |
-| I/O | PASS | PASS | PASS | PASS | `outputs/repro/io_report.json` | `I/O延迟抖动`，包含设备与时延指标 |
-| 内存 | PASS | PASS | PASS | PASS | `outputs/repro/mem_report.json` | `内存抖动`，包含 reclaim/RSS/可用内存证据 |
-| 锁竞争 | PASS | PASS | PASS | PASS | `outputs/repro/lock_report.json` | `锁竞争`，包含 off-CPU/futex 证据 |
-| syscall | PASS | PASS | PASS | PASS | `outputs/repro/syscall_report.json` | `系统调用热点`，包含 syscall 名称、次数、耗时证据 |
-
-结构化校验覆盖 `outputs/repro/*.json` 和 `outputs/bench/tool_output/*.json` 后结果为：CPU 76 份、I/O 10 份、lock 1322 份、mem 4 份、syscall 684 份，全部 PASS，平均分 100.0。
-
-## 4. 2026-07-08 多轮 oracle 准确率
-
-命令：
+## 3. 统一执行与 artifact
 
 ```bash
 make accuracy-full
+python3 scripts/eval_accuracy.py --scenario all --repeat 10 --out outputs/accuracy --require-acceptance
 ```
 
-评测口径见 `outputs/accuracy/accuracy.md`：正例要求报告命中本次 workload 的 pid/tid/device oracle；负例要求空载窗口无报告。实测为 9 个场景 × 3 轮，共 27 轮。
+每轮必须保留：工具命令、`DiagnosticSession`、stderr、workload 原始日志、ground truth、checker、
+`run_status.json` 分项退出码
+结果和环境信息。JSON 以 `schemas/diagnostic_session.schema.json` 为顶层 schema，嵌套 report 以
+`schemas/anomaly_report.schema.json` 校验；解析失败、collector 失败或 `partial=true` 都是
+`infra_error`，不能按无告警 TN 处理。
 
-| 场景 | 类型 | 运行数 | TP | TN | FP | FN | 准确率 | 召回率/误报率 | 备注 |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| CPU | positive | 3 | 3 | 0 | 0 | 0 | 100.0% | 召回 100.0% | 命中 stress-ng CPU workload |
-| I/O | positive | 3 | 3 | 0 | 0 | 0 | 100.0% | 召回 100.0% | 命中 fio 所在块设备 |
-| 内存 | positive | 3 | 3 | 0 | 0 | 0 | 100.0% | 召回 100.0% | target 进程树过滤后命中 `stress-ng-vm` |
-| 锁竞争 | positive | 3 | 3 | 0 | 0 | 0 | 100.0% | 召回 100.0% | target 进程树过滤后命中 `stress-ng-futex` |
-| syscall | positive | 3 | 3 | 0 | 0 | 0 | 100.0% | 召回 100.0% | 命中高频 read/write workload |
-| idle_cpu | negative | 3 | 0 | 3 | 0 | 0 | 100.0% | 误报 0.0% | 空载无告警 |
-| idle_io | negative | 3 | 0 | 3 | 0 | 0 | 100.0% | 误报 0.0% | 空载无告警 |
-| idle_lock | negative | 3 | 0 | 3 | 0 | 0 | 100.0% | 误报 0.0% | 空载无告警 |
-| idle_syscall | negative | 3 | 0 | 3 | 0 | 0 | 100.0% | 误报 0.0% | 空载无告警 |
+I/O workload 固定核心参数：
 
-总体结果：有效运行 27/27，诊断准确率 100.0%，端到端通过率 100.0%。图表见 `outputs/accuracy/pass_rate_by_scenario.svg` 和 `outputs/accuracy/error_breakdown.svg`。
+```bash
+fio --direct=1 --ioengine=libaio --iodepth=64 --numjobs=4 \
+  --output-format=json ...
+```
 
-## 5. 场景级混淆矩阵
+结束后等待最多 5 秒检查 collector health：inflight 必须回到 0，`completion_miss=0`；
+`duplicate_issue/map_update_fail` 也应为 0，`partial_completion` 只记录合法 partial complete。
 
-这里使用二分类 oracle 口径：正例命中本次 workload 记为 TP，正例未命中记为 FN；负例无告警记为 TN，负例有告警记为 FP。
+## 4. TP/FP/FN 规则
 
-| 实际场景 | TP | TN | FP | FN | infra_error |
-|---|---:|---:|---:|---:|---:|
-| CPU | 3 | 0 | 0 | 0 | 0 |
-| I/O | 3 | 0 | 0 | 0 | 0 |
-| 内存 | 3 | 0 | 0 | 0 | 0 |
-| 锁竞争 | 3 | 0 | 0 | 0 | 0 |
-| syscall | 3 | 0 | 0 | 0 | 0 |
-| 空载合计 | 0 | 12 | 0 | 0 | 0 |
+对正例报告 `r`，只有以下谓词同时为真才是匹配：
 
-## 6. 技术报告可用结论模板
+```text
+type_match(r)
+&& root_cause_code_match(r)
+&& workload_object_oracle_match(r)
+&& strict_schema_valid(r)
+```
 
-> 单轮复现留档中，五类异常均能产生对应类型诊断并输出结构化证据链。进一步使用 `make accuracy-full` 做 27 轮 oracle 评测，CPU、I/O、内存、锁竞争、syscall 五类正例 15/15 命中 workload oracle，四类空载负例 12/12 无误报；总体诊断准确率 100.0%，端到端通过率 100.0%。历史版本中 mem/lock 被后台进程污染的问题，已通过 workload 进程树过滤和测试脚本 ground truth 绑定修复。
+- 至少一个匹配报告：该正例有 1 个 TP；没有则有 1 个 FN。
+- 同轮每个不匹配的额外报告都计 FP，包括错误异常类型、错误 code 或错误对象。
+- 负例每个报告计 FP；零报告才计 TN。
+- session/collector/tool/workload/truth/health 失败计 `infra_error`，原始轮次仍保留；checker 因 FN/FP
+  非零退出仍是有效轮次，只有其 artifact 损坏或 `evaluation_valid=false` 才属于基础设施错误。
+- type/code/object 准确率绑定同一 Top-1 报告；按 confidence 最高选择，同分取最早输出。
+
+汇总必须同时给出逐类 confusion matrix、macro precision/recall/F1、根因 code 正确率、对象
+Top-1 命中率和空载误报率。目标：macro F1 >= 90%、code >= 85%、Top-1 >= 90%、idle FP <= 5%。
+
+## 5. 平台证据矩阵
+
+| 项目 | openKylin x86_64 | openKylin ARM64 |
+|---|---|---|
+| Kernel 6.6+ 与 BTF hash | 必须保存 | 必须保存 |
+| HEAD clean snapshot + 已提交 bpf2go 产物的 build/unit | 必须 PASS | 必须 PASS |
+| 独立树目标机重生成 + build/unit | 必须 PASS 并保存 hash/diff | 必须 PASS 并保存 hash/diff |
+| 五类 E2E | 必须 PASS | 必须 PASS |
+| 30 分钟 strict all-mode soak | 必须 PASS | 必须 PASS |
+| accuracy：全局默认、每类 >=10 轮 | 必须生成 | 必须生成 |
+| benchmark：交替顺序、每 case >=5 轮 | 必须生成 | 必须生成 |
+| 合法 JSON、原始数据、SHA256 manifest | 必须保存 | 必须保存 |
+
+统一入口：
+
+```bash
+bash scripts/platform_acceptance.sh \
+  --soak-duration 30m --accuracy-repeat 10 --bench-repeat 5
+```
+
+该入口会拒绝非 openKylin、Kernel < 6.6、非 x86_64/ARM64、BTF 缺失以及 `outputs/` 之外的
+未提交项目改动。构建顺序是硬约束：先从 `HEAD` 导出不含历史 `outputs/` 的 clean snapshot，直接
+使用仓库已提交的 `*_bpfel.go/.o` 完成 `go test ./...` 和 build；然后把同一 archive 解压到第二棵
+临时树，在其中执行目标机 `make vmlinux generate` 和 unit/build，不修改工作区。最后的正式 live
+E2E/soak/accuracy/benchmark 仍回到第一棵树运行。`validation/` 保存已提交/clean-build 后/目标机
+重生成三份 SHA256 清单、二进制 diff，以及 `checked_in_equals_host_regenerated=true|false`。
+由于 CO-RE object 的本地 BTF 会随内核配置和架构变化，`false` 是 provenance 而不是验收失败；
+重生成本身或其 unit/build 失败才是基础设施失败。
+
+## 6. 结论模板
+
+在两个 platform bundle 均完成前，只能写“已建立可复核评测流程”，不能写具体准确率或开销
+结论。完成后从 bundle 的结构化汇总自动填入样本数、混淆矩阵、macro F1、code/Top-1、吞吐和
+P99 变化，并链接原始数据与 `SHA256SUMS`。旧三轮、定向 target、专用阈值结果标记为历史调试
+数据，不并入最终统计。
